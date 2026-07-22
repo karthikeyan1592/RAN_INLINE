@@ -1,0 +1,255 @@
+[    0.000000] Booting Linux on physical CPU 0x0
+[    0.000000] Linux version 5.15.178 (root@LAPTOP-97G9G880) (arm-linux-gnueabi-gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #3 SMP Wed Jun 10 08:08:01 UTC 2026
+[    0.000000] CPU: ARMv6-compatible processor [410fb767] revision 7 (ARMv7), cr=00c5387d
+[    0.000000] CPU: VIPT aliasing data cache, unknown instruction cache
+[    0.000000] OF: fdt: Machine model: AST2500 EVB
+[    0.000000] Memory policy: Data cache writeback
+[    0.000000] Reserved memory: created CMA memory pool at 0x9f000000, size 16 MiB
+[    0.000000] OF: reserved mem: initialized node framebuffer, compatible id shared-dma-pool
+[    0.000000] cma: Reserved 16 MiB at 0x9e000000
+[    0.000000] Zone ranges:
+[    0.000000]   Normal   [mem 0x0000000080000000-0x000000009fffffff]
+[    0.000000]   HighMem  empty
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000080000000-0x000000009fffffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000080000000-0x000000009fffffff]
+[    0.000000] CPU: All CPU(s) started in SVC mode.
+[    0.000000] percpu: Embedded 18 pages/cpu s41196 r8192 d24340 u73728
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 130048
+[    0.000000] Kernel command line: console=ttyS4,115200 panic=-1
+[    0.000000] Dentry cache hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 32768 (order: 5, 131072 bytes, linear)
+[    0.000000] mem auto-init: stack:all(zero), heap alloc:off, heap free:off
+[    0.000000] Memory: 463740K/524288K available (10240K kernel code, 908K rwdata, 3228K rodata, 1024K init, 6425K bss, 27780K reserved, 32768K cma-reserved, 0K highmem)
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+[    0.000000] ftrace: allocating 28096 entries in 83 pages
+[    0.000000] ftrace: allocated 83 pages with 4 groups
+[    0.000000] trace event string verifier disabled
+[    0.000000] Running RCU self tests
+[    0.000000] rcu: Hierarchical RCU implementation.
+[    0.000000] rcu: 	RCU event tracing is enabled.
+[    0.000000] rcu: 	RCU lockdep checking is enabled.
+[    0.000000] rcu: 	RCU restricting CPUs from NR_CPUS=2 to nr_cpu_ids=1.
+[    0.000000] 	Rude variant of Tasks RCU enabled.
+[    0.000000] 	Tracing variant of Tasks RCU enabled.
+[    0.000000] rcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.
+[    0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=1
+[    0.000000] NR_IRQS: 16, nr_irqs: 16, preallocated irqs: 16
+[    0.000000] i2c controller registered, irq 17
+[    0.000000] clocksource: FTTMR010-TIMER2: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 77222644334 ns
+[    0.000154] sched_clock: 32 bits at 24MHz, resolution 40ns, wraps every 86767015915ns
+[    0.002280] Switching to timer-based delay loop, resolution 40ns
+[    0.008016] Lock dependency validator: Copyright (c) 2006 Red Hat, Inc., Ingo Molnar
+[    0.008168] ... MAX_LOCKDEP_SUBCLASSES:  8
+[    0.008201] ... MAX_LOCK_DEPTH:          48
+[    0.008230] ... MAX_LOCKDEP_KEYS:        8192
+[    0.008257] ... CLASSHASH_SIZE:          4096
+[    0.008282] ... MAX_LOCKDEP_ENTRIES:     32768
+[    0.008307] ... MAX_LOCKDEP_CHAINS:      65536
+[    0.008333] ... CHAINHASH_SIZE:          32768
+[    0.008370]  memory used by lock dependency info: 4061 kB
+[    0.008395]  memory used for stack traces: 2112 kB
+[    0.008420]  per task-struct memory footprint: 1536 bytes
+[    0.009765] Calibrating delay loop (skipped), value calculated using timer frequency.. 49.50 BogoMIPS (lpj=247500)
+[    0.010009] CPU: Testing write buffer coherency: ok
+[    0.012095] pid_max: default: 32768 minimum: 301
+[    0.020461] Mount-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.020598] Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.064868] Running RCU-tasks wait API self tests
+[    0.072067] Setting up static identity map for 0x80100000 - 0x80100078
+[    0.074162] rcu: Hierarchical SRCU implementation.
+[    0.082805] ASPEED AST2500 rev A1 (04010303)
+[    0.085513] smp: Bringing up secondary CPUs ...
+[    0.085685] smp: Brought up 1 node, 1 CPU
+[    0.085787] SMP: Total of 1 processors activated (49.50 BogoMIPS).
+[    0.085840] CPU: All CPU(s) started in SVC mode.
+[    0.101633] Callback from call_rcu_tasks_trace() invoked.
+[    0.101852] devtmpfs: initialized
+[    0.162147] VFP support v0.3: implementor 41 architecture 1 part 20 variant b rev 5
+[    0.188777] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.189627] futex hash table entries: 256 (order: 2, 16384 bytes, linear)
+[    0.197539] pinctrl core: initialized pinctrl subsystem
+[    0.226405] Callback from call_rcu_tasks_rude() invoked.
+[    0.232288] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.249260] DMA: preallocated 256 KiB pool for atomic coherent allocations
+[    0.258641] hw-breakpoint: debug architecture 0x0 unsupported.
+[    0.437037] usbcore: registered new interface driver usbfs
+[    0.437596] usbcore: registered new interface driver hub
+[    0.437936] usbcore: registered new device driver usb
+[    0.439837] mc: Linux media interface: v0.10
+[    0.440124] videodev: Linux video capture interface: v2.00
+[    0.440433] pps_core: LinuxPPS API ver. 1 registered
+[    0.440474] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.440614] PTP clock support registered
+[    0.440752] EDAC MC: Ver: 3.0.0
+[    0.478485] clocksource: Switched to clocksource FTTMR010-TIMER2
+[    0.714230] NET: Registered PF_INET protocol family
+[    0.716248] IP idents hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    0.723207] tcp_listen_portaddr_hash hash table entries: 256 (order: 1, 10240 bytes, linear)
+[    0.723529] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.723636] TCP established hash table entries: 4096 (order: 2, 16384 bytes, linear)
+[    0.724221] TCP bind hash table entries: 4096 (order: 5, 163840 bytes, linear)
+[    0.725634] TCP: Hash tables configured (established 4096 bind 4096)
+[    0.727332] UDP hash table entries: 256 (order: 2, 24576 bytes, linear)
+[    0.728216] UDP-Lite hash table entries: 256 (order: 2, 24576 bytes, linear)
+[    0.730474] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    0.745044] Unpacking initramfs...
+[    0.768731] workingset: timestamp_bits=30 max_order=17 bucket_order=0
+[    0.803034] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    0.803158] jffs2: version 2.2. (SUMMARY)  © 2001-2006 Red Hat, Inc.
+[    0.813899] Freeing initrd memory: 244K
+[    0.818802] NET: Registered PF_ALG protocol family
+[    0.860119] Serial: 8250/16550 driver, 6 ports, IRQ sharing enabled
+[    0.879548] printk: console [ttyS4] disabled
+[    0.882031] 1e784000.serial: ttyS4 at MMIO 0x1e784000 (irq = 34, base_baud = 1500000) is a 16550A
+[    0.902416] printk: console [ttyS4] enabled
+[    0.909189] timeriomem_rng 1e6e2078.hwrng: 32bits from 0x(ptrval) @ 1us
+[    0.914915] aspeed_gfx 1e6e6000.display: assigned reserved memory node framebuffer
+[    0.941336] [drm] Initialized aspeed-gfx-drm 1.0.0 20180319 for 1e6e6000.display on minor 0
+[    0.999251] loop: module loaded
+[    1.011905] aspeed-smc 1e620000.spi: mx25l25635e (32768 Kbytes)
+[    1.012658] aspeed-smc 1e620000.spi: CE0 window [ 0x20000000 - 0x22000000 ] 32MB
+[    1.013125] aspeed-smc 1e620000.spi: CE1 window [ 0x22000000 - 0x2a000000 ] 128MB
+[    1.048632] 5 fixed-partitions partitions found on MTD device bmc
+[    1.048999] Creating 5 MTD partitions on "bmc":
+[    1.049359] 0x000000000000-0x000000060000 : "u-boot"
+[    1.063797] 0x000000060000-0x000000080000 : "u-boot-env"
+[    1.070555] random: crng init done
+[    1.076248] 0x000000080000-0x0000004c0000 : "kernel"
+[    1.082269] 0x0000004c0000-0x000001c00000 : "rofs"
+[    1.087544] 0x000001c00000-0x000002000000 : "rwfs"
+[    1.097475] aspeed-smc 1e630000.spi: mx25l25635e (32768 Kbytes)
+[    1.097830] aspeed-smc 1e630000.spi: CE0 window [ 0x30000000 - 0x32000000 ] 32MB
+[    1.098594] aspeed-smc 1e630000.spi: CE1 window [ 0x32000000 - 0x38000000 ] 96MB
+[    1.110482] aspeed-smc 1e631000.spi: Aspeed SMC probe failed -19
+[    1.185153] ftgmac100 1e660000.ethernet: Read MAC address 52:54:00:12:34:56 from chip
+[    1.276038] RTL8211E Gigabit Ethernet 1e660000.ethernet--1:00: attached PHY driver (mii_bus:phy_addr=1e660000.ethernet--1:00, irq=POLL)
+[    1.291672] ftgmac100 1e660000.ethernet eth0: irq 20, mapped at ea5491d2
+[    1.293721] ftgmac100 1e680000.ethernet: Read MAC address 52:54:00:12:34:57 from chip
+[    1.380629] RTL8211E Gigabit Ethernet 1e680000.ethernet--1:00: attached PHY driver (mii_bus:phy_addr=1e680000.ethernet--1:00, irq=POLL)
+[    1.394410] ftgmac100 1e680000.ethernet eth1: irq 21, mapped at f3bf5e55
+[    1.395248] ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+[    1.395718] ehci-platform: EHCI generic platform driver
+[    1.408919] ehci-platform 1e6a3000.usb: EHCI Host Controller
+[    1.410055] ehci-platform 1e6a3000.usb: new USB bus registered, assigned bus number 1
+[    1.416090] ehci-platform 1e6a3000.usb: irq 22, io mem 0x1e6a3000
+[    1.438559] ehci-platform 1e6a3000.usb: USB 2.0 started, EHCI 1.00
+[    1.445444] usb usb1: New USB device found, idVendor=1d6b, idProduct=0002, bcdDevice= 5.15
+[    1.445798] usb usb1: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    1.446011] usb usb1: Product: EHCI Host Controller
+[    1.446172] usb usb1: Manufacturer: Linux 5.15.178 ehci_hcd
+[    1.446340] usb usb1: SerialNumber: 1e6a3000.usb
+[    1.453111] hub 1-0:1.0: USB hub found
+[    1.454196] hub 1-0:1.0: 6 ports detected
+[    1.484056] aspeed_vhub 1e6a0000.usb-vhub: Initialized virtual hub in USB2 mode
+[    1.495364] aspeed-rtc 1e781000.rtc: registered as rtc0
+[    1.495678] aspeed-rtc 1e781000.rtc: hctosys: unable to read the hardware clock
+[    1.496828] i2c_dev: i2c /dev entries driver
+[    1.510989] at24 3-0050: 1024 byte 24c08 EEPROM, writable, 16 bytes/write
+[    1.511937] aspeed-i2c-bus 1e78a100.i2c-bus: i2c bus 3 registered, irq 36
+[    1.516259] aspeed-i2c-bus 1e78a300.i2c-bus: i2c bus 7 registered, irq 37
+[    1.518612] Driver for 1-wire Dallas network protocol.
+[    1.524839] lm75 7-004d: hwmon0: sensor 'lm75'
+[    1.529245] sdhci: Secure Digital Host Controller Interface driver
+[    1.529482] sdhci: Copyright(c) Pierre Ossman
+[    1.529651] sdhci-pltfm: SDHCI platform and OF driver helper
+[    1.532473] usbcore: registered new interface driver usbhid
+[    1.532683] usbhid: USB HID core driver
+[    1.533608] SPI driver bmp280 has no spi_device_id for bosch,bmp085
+[    1.549137] NET: Registered PF_INET6 protocol family
+[    1.573873] sdhci-aspeed 1e740100.sdhci: Phase control not supported for slot 0
+[    1.574230] sdhci-aspeed 1e740100.sdhci: Configured for slot 0
+[    1.596251] Segment Routing with IPv6
+[    1.596693] In-situ OAM (IOAM) with IPv6
+[    1.598593] sit: IPv6, IPv4 and MPLS over IPv4 tunneling driver
+[    1.603617] NET: Registered PF_PACKET protocol family
+[    1.604139] 8021q: 802.1Q VLAN Support v1.8
+[    1.605173] Registering SWP/SWPB emulation handler
+[    1.640730] mmc0: SDHCI controller on 1e740100.sdhci [1e740100.sdhci] using ADMA
+[    1.645031] printk: console [netcon0] enabled
+[    1.645294] netconsole: network logging started
+[    1.647587] clk: Disabling unused clocks
+[    1.695038] Freeing unused kernel image (initmem) memory: 1024K
+[    1.705908] Checked W+X mappings: passed, no W+X pages found
+[    1.706485] Run /init as init process
+=== mounting rwfs (mtdblock5) as jffs2 on /mnt ===
+[    2.087101] jffs2: notice: (1) jffs2_build_xattr_subsystem: complete building xattr subsystem, 0 of xdatum (0 unchecked, 0 orphan) and 0 of xref (0 dead, 0 orphan) found.
+mount OK
+=== reading /mnt/testfile.bin (triggers rtime decompress) ===
+[    2.097404] jffs2: Decompressor "rtime" returned 1
+[    2.098470] jffs2: Error: jffs2_decompress returned 1
+[    2.099139] 8<--- cut here ---
+[    2.099404] Unhandled fault: page domain fault (0x01b) at 0x00000004
+[    2.099686] pgd = ec2a8962
+[    2.099852] [00000004] *pgd=8180a831, *pte=00000000, *ppte=00000000
+[    2.100744] Internal error: : 1b [#1] SMP ARM
+[    2.101116] Modules linked in:
+[    2.101486] CPU: 0 PID: 1 Comm: init Not tainted 5.15.178 #3
+[    2.101766] Hardware name: Generic DT based system
+[    2.102079] PC is at mark_page_accessed+0x18/0x4dc
+[    2.102822] LR is at filemap_read+0x234/0x4b8
+[    2.102972] pc : [<802e3224>]    lr : [<802d5178>]    psr: 00000153
+[    2.103203] sp : 81903d98  ip : 81903dd0  fp : 81903dcc
+[    2.103461] r10: 00000000  r9 : 818cc640  r8 : 81903f08
+[    2.103616] r7 : 00000a00  r6 : 00000000  r5 : 20000153  r4 : 824632f8
+[    2.103857] r3 : 00000000  r2 : 00000000  r1 : ffffffff  r0 : 00000000
+[    2.104110] Flags: nzcv  IRQs on  FIQs off  Mode SVC_32  ISA ARM  Segment none
+[    2.104352] Control: 00c5387d  Table: 822f8008  DAC: 00000051
+[    2.104584] Register r0 information: NULL pointer
+[    2.104952] Register r1 information: non-paged memory
+[    2.105133] Register r2 information: NULL pointer
+[    2.105311] Register r3 information: NULL pointer
+[    2.105443] Register r4 information: slab jffs2_i start 82463290 pointer offset 104
+[    2.106045] Register r5 information: non-paged memory
+[    2.106193] Register r6 information: NULL pointer
+[    2.106322] Register r7 information: non-paged memory
+[    2.106458] Register r8 information: non-slab/vmalloc memory
+[    2.106628] Register r9 information: slab files_cache start 818cc640 pointer offset 0
+[    2.106851] Register r10 information: NULL pointer
+[    2.106982] Register r11 information: non-slab/vmalloc memory
+[    2.107132] Register r12 information: non-slab/vmalloc memory
+[    2.107292] Process init (pid: 1, stack limit = 0x4feba427)
+[    2.107498] Stack: (0x81903d98 to 0x81904000)
+[    2.107724] 3d80:                                                       81903dcc 81903da8
+[    2.107959] 3da0: 8023867c 80a6f63c 824632f8 824632f8 20000153 00000000 00000a00 81903f08
+[    2.108170] 3dc0: 81903e84 81903dd0 802d5178 802e3218 00000001 00000000 802d55c8 81928e00
+[    2.108379] 3de0: 80d40b14 82463460 802d55c8 81903de8 00000000 00000a00 00000001 ffffffff
+[    2.108587] 3e00: 00000000 00000000 00000000 81903ef0 60000200 00000000 00000000 00000000
+[    2.108795] 3e20: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[    2.109015] 3e40: 00000000 00000000 00000000 00000000 00000000 7e153efe 8195d000 81903f08
+[    2.109226] 3e60: 81903ef0 00000000 00001000 00000000 00000000 00000000 81903ed4 81903e88
+[    2.109437] 3e80: 802d55c8 802d4f50 80353f74 8170da00 00032ba0 00000142 81903ef4 81903ea8
+[    2.109644] 3ea0: 80339ebc 801ba230 ffffff9c 818cc640 81903f68 00000001 00000000 00000000
+[    2.109855] 3ec0: 00000000 00000000 81903f64 81903ed8 80346510 802d5408 00001000 801002a4
+[    2.110064] 3ee0: 81902000 00000142 7ed4fda4 00001000 00000000 00000000 00001000 81903ee8
+[    2.110272] 3f00: 00000001 00000000 818cc640 00000000 00000000 00000000 00000000 00000000
+[    2.110478] 3f20: 00000000 00000000 00000000 00000000 00000001 7e153efe 00000000 818cc640
+[    2.110689] 3f40: 818cc640 00000000 00000000 801002a4 81902000 00000003 81903f94 81903f68
+[    2.110916] 3f60: 80346c44 803462e4 00000000 00000000 801001e0 7e153efe 00000000 00000000
+[    2.111126] 3f80: 00000003 00000003 81903fa4 81903f98 80346ce8 80346bd0 00000000 81903fa8
+[    2.111351] 3fa0: 80100080 80346cdc 00000000 00000000 00000003 7ed4fda4 00001000 00000001
+[    2.111567] 3fc0: 00000000 00000000 00000003 00000003 7ed50f1c 00000000 00000001 00000000
+[    2.111787] 3fe0: 00000048 7ed4fd58 00010544 000198ec 20000150 00000003 00000000 00000000
+[    2.112052] Backtrace: 
+[    2.112275] [<802e320c>] (mark_page_accessed) from [<802d5178>] (filemap_read+0x234/0x4b8)
+[    2.112676]  r8:81903f08 r7:00000a00 r6:00000000 r5:20000153 r4:824632f8
+[    2.112889] [<802d4f44>] (filemap_read) from [<802d55c8>] (generic_file_read_iter+0x1cc/0x25c)
+[    2.113119]  r10:00000000 r9:00000000 r8:00000000 r7:00001000 r6:00000000 r5:81903ef0
+[    2.113313]  r4:81903f08
+[    2.113449] [<802d53fc>] (generic_file_read_iter) from [<80346510>] (vfs_read+0x238/0x350)
+[    2.113921]  r10:00000000 r9:00000000 r8:00000000 r7:00000000 r6:00000001 r5:81903f68
+[    2.114145]  r4:818cc640
+[    2.114221] [<803462d8>] (vfs_read) from [<80346c44>] (ksys_read+0x80/0x10c)
+[    2.114449]  r10:00000003 r9:81902000 r8:801002a4 r7:00000000 r6:00000000 r5:818cc640
+[    2.114691]  r4:818cc640
+[    2.114789] [<80346bc4>] (ksys_read) from [<80346ce8>] (sys_read+0x18/0x1c)
+[    2.115098]  r7:00000003 r6:00000003 r5:00000000 r4:00000000
+[    2.115256] [<80346cd0>] (sys_read) from [<80100080>] (ret_fast_syscall+0x0/0x1c)
+[    2.115610] Exception stack(0x81903fa8 to 0x81903ff0)
+[    2.115800] 3fa0:                   00000000 00000000 00000003 7ed4fda4 00001000 00000001
+[    2.116014] 3fc0: 00000000 00000000 00000003 00000003 7ed50f1c 00000000 00000001 00000000
+[    2.116238] 3fe0: 00000048 7ed4fd58 00010544 000198ec
+[    2.116582] Code: e24cb004 e24dd014 e52de004 e8bd4000 (e5903004) 
+[    2.117284] ---[ end trace 7fb2cc1b06aca7cc ]---
+[    2.117775] Kernel panic - not syncing: Fatal exception

@@ -1,0 +1,203 @@
+[    0.000000] Booting Linux on physical CPU 0x0
+[    0.000000] Linux version 5.15.178 (root@LAPTOP-97G9G880) (arm-linux-gnueabi-gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #3 SMP Wed Jun 10 08:08:01 UTC 2026
+[    0.000000] CPU: ARMv6-compatible processor [410fb767] revision 7 (ARMv7), cr=00c5387d
+[    0.000000] CPU: VIPT aliasing data cache, unknown instruction cache
+[    0.000000] OF: fdt: Machine model: AST2500 EVB
+[    0.000000] Memory policy: Data cache writeback
+[    0.000000] Reserved memory: created CMA memory pool at 0x9f000000, size 16 MiB
+[    0.000000] OF: reserved mem: initialized node framebuffer, compatible id shared-dma-pool
+[    0.000000] cma: Reserved 16 MiB at 0x9e000000
+[    0.000000] Zone ranges:
+[    0.000000]   Normal   [mem 0x0000000080000000-0x000000009fffffff]
+[    0.000000]   HighMem  empty
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000080000000-0x000000009fffffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000080000000-0x000000009fffffff]
+[    0.000000] CPU: All CPU(s) started in SVC mode.
+[    0.000000] percpu: Embedded 18 pages/cpu s41196 r8192 d24340 u73728
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 130048
+[    0.000000] Kernel command line: console=ttyS4,115200 panic=-1
+[    0.000000] Dentry cache hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 32768 (order: 5, 131072 bytes, linear)
+[    0.000000] mem auto-init: stack:all(zero), heap alloc:off, heap free:off
+[    0.000000] Memory: 463740K/524288K available (10240K kernel code, 908K rwdata, 3228K rodata, 1024K init, 6425K bss, 27780K reserved, 32768K cma-reserved, 0K highmem)
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+[    0.000000] ftrace: allocating 28096 entries in 83 pages
+[    0.000000] ftrace: allocated 83 pages with 4 groups
+[    0.000000] trace event string verifier disabled
+[    0.000000] Running RCU self tests
+[    0.000000] rcu: Hierarchical RCU implementation.
+[    0.000000] rcu: 	RCU event tracing is enabled.
+[    0.000000] rcu: 	RCU lockdep checking is enabled.
+[    0.000000] rcu: 	RCU restricting CPUs from NR_CPUS=2 to nr_cpu_ids=1.
+[    0.000000] 	Rude variant of Tasks RCU enabled.
+[    0.000000] 	Tracing variant of Tasks RCU enabled.
+[    0.000000] rcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.
+[    0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=1
+[    0.000000] NR_IRQS: 16, nr_irqs: 16, preallocated irqs: 16
+[    0.000000] i2c controller registered, irq 17
+[    0.000000] clocksource: FTTMR010-TIMER2: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 77222644334 ns
+[    0.000153] sched_clock: 32 bits at 24MHz, resolution 40ns, wraps every 86767015915ns
+[    0.002248] Switching to timer-based delay loop, resolution 40ns
+[    0.007722] Lock dependency validator: Copyright (c) 2006 Red Hat, Inc., Ingo Molnar
+[    0.007860] ... MAX_LOCKDEP_SUBCLASSES:  8
+[    0.007892] ... MAX_LOCK_DEPTH:          48
+[    0.007921] ... MAX_LOCKDEP_KEYS:        8192
+[    0.007953] ... CLASSHASH_SIZE:          4096
+[    0.007978] ... MAX_LOCKDEP_ENTRIES:     32768
+[    0.008003] ... MAX_LOCKDEP_CHAINS:      65536
+[    0.008028] ... CHAINHASH_SIZE:          32768
+[    0.008068]  memory used by lock dependency info: 4061 kB
+[    0.008094]  memory used for stack traces: 2112 kB
+[    0.008120]  per task-struct memory footprint: 1536 bytes
+[    0.009530] Calibrating delay loop (skipped), value calculated using timer frequency.. 49.50 BogoMIPS (lpj=247500)
+[    0.009759] CPU: Testing write buffer coherency: ok
+[    0.011705] pid_max: default: 32768 minimum: 301
+[    0.019520] Mount-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.019637] Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.061539] Running RCU-tasks wait API self tests
+[    0.068615] Setting up static identity map for 0x80100000 - 0x80100078
+[    0.070352] rcu: Hierarchical SRCU implementation.
+[    0.076662] ASPEED AST2500 rev A1 (04010303)
+[    0.078529] smp: Bringing up secondary CPUs ...
+[    0.078659] smp: Brought up 1 node, 1 CPU
+[    0.078750] SMP: Total of 1 processors activated (49.50 BogoMIPS).
+[    0.078799] CPU: All CPU(s) started in SVC mode.
+[    0.085219] Callback from call_rcu_tasks_trace() invoked.
+[    0.093503] devtmpfs: initialized
+[    0.138971] VFP support v0.3: implementor 41 architecture 1 part 20 variant b rev 5
+[    0.169975] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.170840] futex hash table entries: 256 (order: 2, 16384 bytes, linear)
+[    0.181546] pinctrl core: initialized pinctrl subsystem
+[    0.211188] Callback from call_rcu_tasks_rude() invoked.
+[    0.217182] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.232490] DMA: preallocated 256 KiB pool for atomic coherent allocations
+[    0.241784] hw-breakpoint: debug architecture 0x0 unsupported.
+[    0.416088] usbcore: registered new interface driver usbfs
+[    0.416682] usbcore: registered new interface driver hub
+[    0.417001] usbcore: registered new device driver usb
+[    0.418128] mc: Linux media interface: v0.10
+[    0.418350] videodev: Linux video capture interface: v2.00
+[    0.418662] pps_core: LinuxPPS API ver. 1 registered
+[    0.418704] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.418839] PTP clock support registered
+[    0.418974] EDAC MC: Ver: 3.0.0
+[    0.458129] clocksource: Switched to clocksource FTTMR010-TIMER2
+[    0.703662] NET: Registered PF_INET protocol family
+[    0.705889] IP idents hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    0.712599] tcp_listen_portaddr_hash hash table entries: 256 (order: 1, 10240 bytes, linear)
+[    0.712861] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.712951] TCP established hash table entries: 4096 (order: 2, 16384 bytes, linear)
+[    0.713264] TCP bind hash table entries: 4096 (order: 5, 163840 bytes, linear)
+[    0.714588] TCP: Hash tables configured (established 4096 bind 4096)
+[    0.716048] UDP hash table entries: 256 (order: 2, 24576 bytes, linear)
+[    0.716511] UDP-Lite hash table entries: 256 (order: 2, 24576 bytes, linear)
+[    0.718771] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    0.732236] Unpacking initramfs...
+[    0.758275] workingset: timestamp_bits=30 max_order=17 bucket_order=0
+[    0.792331] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    0.792462] jffs2: version 2.2. (SUMMARY)  © 2001-2006 Red Hat, Inc.
+[    0.799119] Freeing initrd memory: 244K
+[    0.803386] NET: Registered PF_ALG protocol family
+[    0.845285] Serial: 8250/16550 driver, 6 ports, IRQ sharing enabled
+[    0.866687] printk: console [ttyS4] disabled
+[    0.869792] 1e784000.serial: ttyS4 at MMIO 0x1e784000 (irq = 34, base_baud = 1500000) is a 16550A
+[    0.889912] printk: console [ttyS4] enabled
+[    0.895949] timeriomem_rng 1e6e2078.hwrng: 32bits from 0x(ptrval) @ 1us
+[    0.900984] aspeed_gfx 1e6e6000.display: assigned reserved memory node framebuffer
+[    0.934730] [drm] Initialized aspeed-gfx-drm 1.0.0 20180319 for 1e6e6000.display on minor 0
+[    0.988871] random: crng init done
+[    0.995465] loop: module loaded
+[    1.006123] aspeed-smc 1e620000.spi: mx25l25635e (32768 Kbytes)
+[    1.006842] aspeed-smc 1e620000.spi: CE0 window [ 0x20000000 - 0x22000000 ] 32MB
+[    1.007591] aspeed-smc 1e620000.spi: CE1 window [ 0x22000000 - 0x2a000000 ] 128MB
+[    1.031063] 5 fixed-partitions partitions found on MTD device bmc
+[    1.031408] Creating 5 MTD partitions on "bmc":
+[    1.031749] 0x000000000000-0x000000060000 : "u-boot"
+[    1.037808] 0x000000060000-0x000000080000 : "u-boot-env"
+[    1.042986] 0x000000080000-0x0000004c0000 : "kernel"
+[    1.048472] 0x0000004c0000-0x000001c00000 : "rofs"
+[    1.053259] 0x000001c00000-0x000002000000 : "rwfs"
+[    1.061798] aspeed-smc 1e630000.spi: mx25l25635e (32768 Kbytes)
+[    1.062094] aspeed-smc 1e630000.spi: CE0 window [ 0x30000000 - 0x32000000 ] 32MB
+[    1.062314] aspeed-smc 1e630000.spi: CE1 window [ 0x32000000 - 0x38000000 ] 96MB
+[    1.072869] aspeed-smc 1e631000.spi: Aspeed SMC probe failed -19
+[    1.145641] ftgmac100 1e660000.ethernet: Read MAC address 52:54:00:12:34:56 from chip
+[    1.240884] RTL8211E Gigabit Ethernet 1e660000.ethernet--1:00: attached PHY driver (mii_bus:phy_addr=1e660000.ethernet--1:00, irq=POLL)
+[    1.256507] ftgmac100 1e660000.ethernet eth0: irq 20, mapped at 898504cd
+[    1.258897] ftgmac100 1e680000.ethernet: Read MAC address 52:54:00:12:34:57 from chip
+[    1.354356] RTL8211E Gigabit Ethernet 1e680000.ethernet--1:00: attached PHY driver (mii_bus:phy_addr=1e680000.ethernet--1:00, irq=POLL)
+[    1.368327] ftgmac100 1e680000.ethernet eth1: irq 21, mapped at c8f1cf47
+[    1.369237] ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+[    1.369991] ehci-platform: EHCI generic platform driver
+[    1.384002] ehci-platform 1e6a3000.usb: EHCI Host Controller
+[    1.385267] ehci-platform 1e6a3000.usb: new USB bus registered, assigned bus number 1
+[    1.392775] ehci-platform 1e6a3000.usb: irq 22, io mem 0x1e6a3000
+[    1.418542] ehci-platform 1e6a3000.usb: USB 2.0 started, EHCI 1.00
+[    1.428686] usb usb1: New USB device found, idVendor=1d6b, idProduct=0002, bcdDevice= 5.15
+[    1.429220] usb usb1: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    1.429414] usb usb1: Product: EHCI Host Controller
+[    1.429596] usb usb1: Manufacturer: Linux 5.15.178 ehci_hcd
+[    1.429755] usb usb1: SerialNumber: 1e6a3000.usb
+[    1.437217] hub 1-0:1.0: USB hub found
+[    1.439200] hub 1-0:1.0: 6 ports detected
+[    1.472790] aspeed_vhub 1e6a0000.usb-vhub: Initialized virtual hub in USB2 mode
+[    1.485449] aspeed-rtc 1e781000.rtc: registered as rtc0
+[    1.485768] aspeed-rtc 1e781000.rtc: hctosys: unable to read the hardware clock
+[    1.487488] i2c_dev: i2c /dev entries driver
+[    1.504097] at24 3-0050: 1024 byte 24c08 EEPROM, writable, 16 bytes/write
+[    1.505066] aspeed-i2c-bus 1e78a100.i2c-bus: i2c bus 3 registered, irq 36
+[    1.509371] aspeed-i2c-bus 1e78a300.i2c-bus: i2c bus 7 registered, irq 37
+[    1.511230] Driver for 1-wire Dallas network protocol.
+[    1.517505] lm75 7-004d: hwmon0: sensor 'lm75'
+[    1.521811] sdhci: Secure Digital Host Controller Interface driver
+[    1.522066] sdhci: Copyright(c) Pierre Ossman
+[    1.522297] sdhci-pltfm: SDHCI platform and OF driver helper
+[    1.525334] usbcore: registered new interface driver usbhid
+[    1.525561] usbhid: USB HID core driver
+[    1.526474] SPI driver bmp280 has no spi_device_id for bosch,bmp085
+[    1.542485] NET: Registered PF_INET6 protocol family
+[    1.568065] sdhci-aspeed 1e740100.sdhci: Phase control not supported for slot 0
+[    1.568421] sdhci-aspeed 1e740100.sdhci: Configured for slot 0
+[    1.592354] Segment Routing with IPv6
+[    1.592833] In-situ OAM (IOAM) with IPv6
+[    1.594674] sit: IPv6, IPv4 and MPLS over IPv4 tunneling driver
+[    1.601115] NET: Registered PF_PACKET protocol family
+[    1.601698] 8021q: 802.1Q VLAN Support v1.8
+[    1.602981] Registering SWP/SWPB emulation handler
+[    1.642627] mmc0: SDHCI controller on 1e740100.sdhci [1e740100.sdhci] using ADMA
+[    1.648055] printk: console [netcon0] enabled
+[    1.648357] netconsole: network logging started
+[    1.650707] clk: Disabling unused clocks
+[    1.700084] Freeing unused kernel image (initmem) memory: 1024K
+[    1.711765] Checked W+X mappings: passed, no W+X pages found
+[    1.712445] Run /init as init process
+=== /proc/mtd ===
+dev:    size   erasesize  name
+mtd0: 02000000 00010000 "bmc"
+mtd1: 00060000 00010000 "u-boot"
+mtd2: 00020000 00010000 "u-boot-env"
+mtd3: 00440000 00010000 "kernel"
+mtd4: 01740000 00010000 "rofs"
+mtd5: 00400000 00010000 "rwfs"
+mtd6: 02000000 00010000 "pnor"
+=== raw /dev listing ===
+=== /dev listing (mtd*) ===
+/dev/mtd0 : missing
+/dev/mtd1 : missing
+/dev/mtd2 : missing
+/dev/mtd3 : missing
+/dev/mtd4 : missing
+/dev/mtd5 : missing
+/dev/mtd6 : missing
+/dev/mtdblock0 : missing
+/dev/mtdblock1 : missing
+/dev/mtdblock2 : missing
+/dev/mtdblock3 : missing
+/dev/mtdblock4 : missing
+/dev/mtdblock5 : missing
+/dev/mtdblock6 : missing
+=== halting ===
+[    1.827747] reboot: System halted
+qemu-system-arm: terminating on signal 15 from pid 40147 (timeout)
