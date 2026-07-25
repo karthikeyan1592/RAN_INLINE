@@ -1,0 +1,117 @@
+# p1-ran-baseline — compose overlay (P1-R1/R2/R3, IF-P1-COMPOSE)
+#
+# Third compose layer: {upstream/docker/docker-compose.yml} + {p0's compose.sim.yml} + this file.
+# Usage: docker compose -f "${UPSTREAM}/docker/docker-compose.yml" -f "${P0_DOCKER}/compose.sim.yml" \
+#          -f "${THIS_DIR}/compose.p1.yml" [...]     (see helpers/*.sh, which always invoke all three)
+#
+# Adds the `fronthaul` network + `ru-emu` service; ADDITIVELY extends the upstream `gnb` service
+# (new network attachment only — no other key touched, matching P0-R2's "upstream unchanged"
+# discipline this project already established: `docker compose config`'s rendered `gnb`/`5gc`
+# definitions differ from upstream-alone only by this file's added `networks.fronthaul` key and
+# the env-resolved `GNB_CONFIG_PATH` value upstream's OWN compose file already parameterizes).
+#
+# Real-source correction vs this feature's own LLD (recorded here + VERIFICATION.md): the LLD
+# assumed a `COMPONENT=ru-emulator` build arg for a separate ru-emu image. Reading the actual
+# `docker/Dockerfile` (the monolithic one D1 selects) shows NO such arg exists — the single build
+# stage unconditionally compiles AND installs ocu/odu/odu_split_8/odu_split_7_2/gnb/gnb_split_8/
+# gnb_split_7_2/ru_emulator into /opt/ocudu/bin/ of the SAME image already built for `gnb`. So
+# `ru-emu` below reuses `ocudu/gnb` (no separate build) and just overrides `command` to run
+# `ru_emulator` instead of `gnb` — simpler and more correct than a redundant second build.
+#
+# REAL BUG FOUND + FIXED (2026-07-25, first actual local bring-up attempt): `configs.ru_emu_config
+# .yml.file` used a relative path (`./configs/ru_emu.yml`), which Docker Compose resolves relative
+# to the FIRST `-f` file's directory when multiple compose files are layered (here: the upstream
+# compose file's directory), NOT relative to the override file that declares it — same class of
+# relative-path fragility as K1's kernel CWD-relative source paths (p2, VERIFICATION.md). Caught
+# immediately at `docker compose up` ("bind source path does not exist") rather than silently
+# mounting the wrong (or no) file. Fixed by requiring an ABSOLUTE path via `P1_RU_EMU_CONFIG_PATH`
+# (no relative default — a default here would hit the exact same resolution-directory problem);
+# every invoking script (helpers/bring_up.sh) sets it to this file's own absolute path before
+# calling compose, mirroring how `GNB_CONFIG_PATH` already had to be absolute for the same reason.
+
+services:
+  gnb:
+    networks:
+      fronthaul:
+        mac_address: "02:6f:69:00:01:02"
+    # Q6 RESOLVED FOR REAL 2026-07-25 (see gnb_ofh_testmode.yml's own note for the full story): a
+    # static `network_interface: eth0` (or eth1) in the config is NOT safe -- empirically, which
+    # of gnb's three networks (fronthaul/ran/metrics) becomes eth0/eth1/eth2 is not stable across
+    # container (re)creations on this host (observed eth0=fronthaul on first `up`, eth1=fronthaul
+    # after a `--force-recreate` of the SAME compose stack, no config change). A hardcoded value
+    # silently binds gnb's OFH transmitter to the WRONG network with no error -- it just sends
+    # frames that never reach ru-emu (confirmed: 0 packets on the fronthaul bridge with the wrong
+    # guess, despite gnb's MAC/PHY test-mode counters still looking "live", because those counters
+    # are synthesized in du_high's MAC test-mode PDU injection and don't by themselves prove
+    # anything reached the wire -- see gnb_ofh_testmode.yml's note).
+    #
+    # Fix: resolve the fronthaul interface by MAC (the one value that IS stable -- we pin it
+    # ourselves, two lines up) at container start, patch a writable copy of the config (Docker
+    # `configs:` mounts are read-only), and launch the real upstream `gnb` binary against that
+    # copy. This is a compose-file `command:` override (P1-R11 permits compose files; no project
+    # source is compiled into the image), additive in the same sense the `networks` key above is:
+    # it doesn't edit upstream's image or its default command, it overrides how THIS compose stack
+    # invokes it, same category of change as `ru-emu`'s own `command:` override below.
+    # NOTE: every $ below is escaped as $$ -- Docker Compose interpolates ${...}/$VAR in the
+    # RENDERED YAML itself (found the hard way: the first version of this script, with real
+    # single-$ shell syntax, got silently rewritten to "The IFACE variable is not set. Defaulting
+    # to a blank string." by compose's own interpolation pass, before the container ever ran it —
+    # the shell script must reach the container's /bin/sh with its $ characters intact).
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        IFACE=$$(ip -o link show | grep -i '02:6f:69:00:01:02' | awk -F': ' '{print $$2}' | cut -d'@' -f1)
+        if [ -z "$$IFACE" ]; then
+          echo "FATAL: no interface found with fronthaul MAC 02:6f:69:00:01:02" >&2
+          exit 1
+        fi
+        echo "resolved fronthaul interface: $$IFACE"
+        cp /gnb_config.yml /tmp/gnb_config_resolved.yml
+        sed -i "s/network_interface:.*/network_interface: $${IFACE}/" /tmp/gnb_config_resolved.yml
+        exec gnb -c /tmp/gnb_config_resolved.yml -c /gnb_compose_config.yml
+
+  ru-emu:
+    image: ocudu/gnb   # same image as the gnb service (see file header) — no ru-emu-specific build
+    container_name: ocudu_ru_emu
+    # HLD D2 correction (2026-07-25, found by actually running it): D2 claimed the socket
+    # (AF_PACKET) transceiver needs "no privileged, no cap_add". False for this OCUDU version --
+    # ethernet_transmitter_impl's constructor unconditionally calls ioctl(SIOCSIFMTU) (lib/ofh/
+    # ethernet/ethernet_transmitter_impl.cpp), even when the interface's MTU already matches the
+    # requested value, and treats any ioctl failure as fatal (report_error, process exit). SIOCSIFMTU
+    # always requires CAP_NET_ADMIN on Linux. gnb's upstream service never hit this because it's
+    # `privileged: true` (full capabilities, for USB/SDR access -- unrelated to this) -- ru-emu
+    # deliberately isn't, so it needs this ONE capability explicitly. Still not `--privileged` and
+    # still no hugepages/DPDK -- a minimal, targeted grant, not a reversion to "exotic host config".
+    cap_add:
+      - NET_ADMIN
+    networks:
+      fronthaul:
+        mac_address: "02:6f:69:00:01:01"
+    configs:
+      - ru_emu_config.yml
+    # PATH-relative, not an absolute /opt/ocudu/bin/... guess (2026-07-25, first real local
+    # bring-up attempt): the actually-built ocudu/gnb:latest image installs binaries to
+    # /usr/local/bin (confirmed via `docker run ... which gnb` -> /usr/local/bin/gnb), not
+    # /opt/ocudu/bin as the current third_party/ocudu Dockerfile's explicit `mv` step would
+    # suggest -- this image predates that reading, or was built via a different path. Matching
+    # upstream's own gnb service command (bare `gnb`, no absolute path) is the portable choice:
+    # it works regardless of which exact install prefix a given build used.
+    command: ["ru_emulator", "-c", "/ru_emu_config.yml"]
+    depends_on:
+      gnb:
+        condition: service_started
+
+configs:
+  ru_emu_config.yml:
+    file: ${P1_RU_EMU_CONFIG_PATH:?P1_RU_EMU_CONFIG_PATH must be set to this feature's docker/configs/ru_emu.yml absolute path -- a relative default here would resolve against the wrong compose file's directory, see the file-header note above}
+
+networks:
+  fronthaul:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: "9000"
+    ipam:
+      config:
+        - subnet: 10.60.1.0/24

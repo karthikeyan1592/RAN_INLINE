@@ -1,0 +1,9 @@
+{
+  "schema": "oi-p1-synth-ecpri/1",
+  "frames": 7,
+  "c_dl": 2,
+  "c_ul": 0,
+  "u_dl": 3,
+  "u_ul": 2,
+  "vlan_tagged_frames": 1
+}

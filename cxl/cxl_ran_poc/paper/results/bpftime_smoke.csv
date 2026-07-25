@@ -1,0 +1,3 @@
+method,overhead_ns,stddev_ns,n_samples,source
+kernel_uprobe_baseline,9941,,,measured (D1, prior session, WSL2 int3+KVM VM-exit)
+bpftime_uprobe,248,5.2,9,measured (Gate 0.1, 2026-06-15, WSL2 userspace Frida uprobe)

@@ -1,0 +1,28 @@
+@startuml nic_gpu_layers
+title The open NIC -> GPU mechanism (corrected: mlx5 is hardware choice, not SW lock-in)
+skinparam rectangle {
+  BackgroundColor #F7F7F7
+}
+rectangle "ConnectX NIC silicon\n(hardware only, buy it)" as L1 #D4EDDA
+rectangle "mlx5_core / mlx5_ib\nkernel drivers -- OPEN\n(upstream Linux)" as L2 #D4EDDA
+rectangle "DMA-BUF kernel framework\nOPEN, vendor-neutral" as L3 #D4EDDA
+rectangle "rdma-core + libibverbs\n+ mlx5 provider -- OPEN\n(linux-rdma/rdma-core)" as L4 #D4EDDA
+rectangle "ibv_reg_dmabuf_mr()\nOPEN verb -- does the actual pull" as L5 #D4EDDA
+rectangle "DPDK mlx5 PMD -- OPEN (BSD)" as L6 #D4EDDA
+rectangle "GPU dmabuf export\n(hsa_amd_portable_export_dmabuf /\nCUDA equiv.) -- OPEN" as L7 #D4EDDA
+rectangle "DOCA GPUNetIO / GDAKI\n(GPU rings NIC doorbell itself)\nHistorically NVIDIA-only;\nnew limited open release --\nUNVERIFIED, NOT REQUIRED for us" as L8 #F8D7DA
+
+L1 --> L2
+L2 --> L3
+L3 --> L4
+L4 --> L5
+L5 --> L6
+L6 --> L7
+L7 -[#F8D7DA]-> L8 : optional, not on our\ncritical path
+
+note right of L5
+  This is the layer that matters:
+  packets land in GPU VRAM,
+  CPU never touches payload.
+end note
+@enduml

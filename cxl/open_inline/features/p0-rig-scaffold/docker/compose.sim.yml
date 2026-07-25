@@ -1,0 +1,44 @@
+# p0-rig-scaffold — compose override (P0-R2, IF-P0-COMPOSE)
+#
+# Adds project services (gpu-phy, oracle) alongside the vendored upstream OCUDU compose
+# (upstream/docker-compose.yml). Upstream service definitions are NEVER touched here — P0-R2's
+# test is that `docker compose -f upstream/docker-compose.yml -f compose.sim.yml config`'s
+# rendered upstream services are byte-identical to `-f upstream/docker-compose.yml config` alone.
+#
+# gpu-phy/oracle deliberately join no network in P0 (no fronthaul exists yet — p1-ran-baseline
+# adds the fronthaul/backhaul networks and wires ru-emu/gnb/5gc together). They are inert,
+# unprivileged, deviceless skeleton services whose only job in P0 is the LDPC suite + verdict CLI.
+#
+# Usage: docker compose -f upstream/docker-compose.yml -f compose.sim.yml [...]
+# (helpers/build_images.sh and smoke_up.sh always invoke both files together.)
+
+services:
+  gpu-phy:
+    image: oi/gpu-phy:${OI_TAG:-dev}
+    build:
+      context: ./gpu-phy
+      additional_contexts:
+        ocudu: ${OI_OCUDU_SRC:-./upstream}
+    environment:
+      OI_CL_PLATFORM: ${OI_CL_PLATFORM:-pocl}
+      OI_VECTOR_DIR: /oi/vectors
+      OI_LOG_DIR: /oi/logs
+    volumes:
+      - oi-vectors:/oi/vectors:ro
+      - oi-logs:/oi/logs
+    # MUST NOT contain: devices, privileged, cap_add (P0-R3). p1/p3 add NET_RAW via their own
+    # override layered on top of this one — never edit this file to add it.
+    command: ["sleep", "infinity"]
+
+  oracle:
+    image: oi/oracle:${OI_TAG:-dev}
+    build:
+      context: ..
+      dockerfile: docker/oracle/Dockerfile
+    volumes:
+      - oi-vectors:/oi/vectors
+    command: ["sleep", "infinity"]
+
+volumes:
+  oi-vectors: {}
+  oi-logs: {}

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="419px" preserveAspectRatio="none" style="width:1021px;height:419px;" version="1.1" viewBox="0 0 1021 419" width="1021px" zoomAndPan="magnify"><defs><filter height="300%" id="fawma3xpwaegc" width="300%" x="-1" y="-1"><feGaussianBlur result="blurOut" stdDeviation="2.0"/><feColorMatrix in="blurOut" result="blurOut2" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .4 0"/><feOffset dx="4.0" dy="4.0" in="blurOut2" result="blurOut3"/><feBlend in="SourceGraphic" in2="blurOut3" mode="normal"/></filter></defs><g><text fill="#000000" font-family="sans-serif" font-size="18" lengthAdjust="spacingAndGlyphs" textLength="566" x="233.5" y="16.708">PHY&lt;-&gt;L2 seam: retired BBDev PMD vs the new full-PHY seam</text><!--MD5=[073dc13550ed6d7a5529eddfc2a03922]
+cluster v1/v2 (retired) - - LDPC lookaside only--><polygon fill="#F8D7DA" filter="url(#fawma3xpwaegc)" points="22,53.4531,323,53.4531,330,75.75,333,75.75,333,399.4531,22,399.4531,22,53.4531" style="stroke: #000000; stroke-width: 1.5;"/><line style="stroke: #000000; stroke-width: 1.5;" x1="22" x2="330" y1="75.75" y2="75.75"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="295" x="26" y="68.4482">v1/v2 (retired) -- LDPC lookaside only</text><!--MD5=[93a0e59107e2b2e3c59db9d1282ee3e0]
+cluster v3 Phase 1 (current) - - GPU owns entire PHY--><polygon fill="#D4EDDA" filter="url(#fawma3xpwaegc)" points="629,44.9531,989,44.9531,996,67.25,999,67.25,999,407.9531,629,407.9531,629,44.9531" style="stroke: #000000; stroke-width: 1.5;"/><line style="stroke: #000000; stroke-width: 1.5;" x1="629" x2="996" y1="67.25" y2="67.25"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="354" x="633" y="59.9482">v3 Phase 1 (current) -- GPU owns entire PHY</text><!--MD5=[aae3d3561ac7413fc1f95de5a0a76b59]
+entity OAIv2--><rect fill="#FEFECE" filter="url(#fawma3xpwaegc)" height="36.2969" style="stroke: #A80036; stroke-width: 1.5;" width="198" x="105" y="88.4531"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="100" y="93.4531"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="100" y="114.75"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="178" x="115" y="111.4482">OAI CPU: owns entire PHY</text><!--MD5=[afafe1d3c9fb194f91139d8d2324e932]
+entity AAL--><rect fill="#FEFECE" filter="url(#fawma3xpwaegc)" height="52.5938" style="stroke: #A80036; stroke-width: 1.5;" width="225" x="91.5" y="208.9531"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="86.5" y="213.9531"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="86.5" y="251.5469"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="179" x="101.5" y="231.9482">O-RAN AAL / DPDK-BBDev</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="205" x="101.5" y="248.2451">(FEC-lookaside-only interface)</text><!--MD5=[49846c416418285f1dbe908883ea340f]
+entity GPUv2--><rect fill="#FEFECE" filter="url(#fawma3xpwaegc)" height="36.2969" style="stroke: #A80036; stroke-width: 1.5;" width="194" x="107" y="347.4531"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="102" y="352.4531"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="102" y="373.75"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="174" x="117" y="370.4482">GPU: LDPC decode ONLY</text><!--MD5=[5eaa38e595507542bc6f6ee4d29b569b]
+entity GPUv3--><rect fill="#FEFECE" filter="url(#fawma3xpwaegc)" height="52.5938" style="stroke: #A80036; stroke-width: 1.5;" width="204" x="712" y="79.9531"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="707" y="84.9531"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="707" y="122.5469"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="184" x="722" y="102.9482">GPU-resident PHY process</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="95" x="722" y="119.2451">(entire DU L1)</text><!--MD5=[4947810d5693a304e5b222484e27e17c]
+entity SEAMv3--><rect fill="#FEFECE" filter="url(#fawma3xpwaegc)" height="85.1875" style="stroke: #A80036; stroke-width: 1.5;" width="217" x="705.5" y="192.9531"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="700.5" y="197.9531"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="700.5" y="268.1406"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="115" x="715.5" y="215.9482">PHY&lt;-&gt;L2 seam</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="165" x="715.5" y="232.2451">simple custom IPC now;</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="174" x="715.5" y="248.542">FAPI-style (SCF FAPI) later</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="197" x="715.5" y="264.8389">if production interop needed</text><!--MD5=[fa7b28dfcab2dd29e67b56da9d1f6899]
+entity CPUv3--><rect fill="#FEFECE" filter="url(#fawma3xpwaegc)" height="52.5938" style="stroke: #A80036; stroke-width: 1.5;" width="137" x="745.5" y="338.9531"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="740.5" y="343.9531"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="740.5" y="381.5469"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="98" x="755.5" y="361.9482">CPU: L2+ only</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="117" x="755.5" y="378.2451">(MAC/RLC/PDCP)</text><path d="M349.5,337.9531 L349.5,393.3516 A0,0 0 0 0 349.5,393.3516 L612.5,393.3516 A0,0 0 0 0 612.5,393.3516 L612.5,347.9531 L602.5,337.9531 L427.32,337.9531 L259.39,262.0531 L419.32,337.9531 L349.5,337.9531 A0,0 0 0 0 349.5,337.9531 " fill="#FBFB77" filter="url(#fawma3xpwaegc)" style="stroke: #A80036; stroke-width: 1.0;"/><path d="M602.5,337.9531 L602.5,347.9531 L612.5,347.9531 L602.5,337.9531 " fill="#FBFB77" style="stroke: #A80036; stroke-width: 1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="236" x="355.5" y="355.02">AAL/BBDev doesn't apply anymore --</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="203" x="355.5" y="370.1528">it's FEC-only. GPU now owns the</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="242" x="355.5" y="385.2856">WHOLE PHY, needs a bigger interface.</text><!--MD5=[d336ee2b3ff798c6a1c312ec592c6fc6]
+link OAIv2 to AAL--><path d="M204,124.5831 C204,144.8131 204,178.8431 204,203.6731 " fill="none" id="OAIv2-&gt;AAL" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="204,208.8331,208,199.8331,204,203.8331,200,199.8331,204,208.8331" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[11999d83a8fa3540ca0275b01a1bdeb2]
+link AAL to GPUv2--><path d="M204,262.0531 C204,285.4131 204,319.6231 204,341.9631 " fill="none" id="AAL-&gt;GPUv2" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="204,347.1031,208,338.1031,204,342.1031,200,338.1031,204,347.1031" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[eecbb993fce56d73663f6ef2761c28cd]
+link GPUv3 to SEAMv3--><path d="M814,133.1531 C814,148.7931 814,169.2331 814,187.6531 " fill="none" id="GPUv3-&gt;SEAMv3" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="814,192.7931,818,183.7931,814,187.7931,810,183.7931,814,192.7931" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[cb703a771ec5736515f2621eb452fd91]
+link SEAMv3 to CPUv3--><path d="M814,278.0131 C814,296.1331 814,317.0131 814,333.7131 " fill="none" id="SEAMv3-&gt;CPUv3" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="814,338.7531,818,329.7531,814,333.7531,810,329.7531,814,338.7531" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[f3e5375fb4913ef981b993c737865d60]
+@startuml phy_l2_seam
+title PHY<->L2 seam: retired BBDev PMD vs the new full-PHY seam
+skinparam componentStyle rectangle
+
+package "v1/v2 (retired) - - LDPC lookaside only" #F8D7DA {
+  [OAI CPU: owns entire PHY] as OAIv2
+  [O-RAN AAL / DPDK-BBDev\n(FEC-lookaside-only interface)] as AAL
+  [GPU: LDPC decode ONLY] as GPUv2
+  OAIv2 - -> AAL
+  AAL - -> GPUv2
+}
+
+package "v3 Phase 1 (current) - - GPU owns entire PHY" #D4EDDA {
+  [GPU-resident PHY process\n(entire DU L1)] as GPUv3
+  [PHY<->L2 seam\nsimple custom IPC now;\nFAPI-style (SCF FAPI) later\nif production interop needed] as SEAMv3
+  [CPU: L2+ only\n(MAC/RLC/PDCP)] as CPUv3
+  GPUv3 - -> SEAMv3
+  SEAMv3 - -> CPUv3
+}
+
+note bottom of AAL
+  AAL/BBDev doesn't apply anymore - -
+  it's FEC-only. GPU now owns the
+  WHOLE PHY, needs a bigger interface.
+end note
+@enduml
+
+PlantUML version 1.2020.02(Sun Mar 01 10:22:07 UTC 2020)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Java Version: 21.0.11+10-1-24.04.2-Ubuntu
+Operating System: Linux
+Default Encoding: UTF-8
+Language: en
+Country: null
+--></g></svg>

@@ -1,0 +1,2 @@
+source,emulation_mode,uprobe_captured_llr_ptr,node_before,node_after,cxl_match,pages_migrated,proc_mem_ok,ocl_popcount,crit_d_oracle,ocl_us,uprobe_hits,dev030_workaround
+measured,qemu_cxl_node1_move_pages,0x5deb237d3470,0,1,YES,3,YES,4176,NOT_MET_DEFERRED,197587.9,606,numactl_membind1_sigill_pmem_wc

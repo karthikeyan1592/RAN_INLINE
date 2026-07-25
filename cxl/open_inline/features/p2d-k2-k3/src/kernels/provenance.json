@@ -1,0 +1,48 @@
+[
+  {
+    "kernel": "k2a_chanest_symbol",
+    "type": "port",
+    "ocudu": {
+      "repo": "https://gitlab.com/ocudu/ocudu",
+      "tag": "release_26_04",
+      "sha": "050a2bb72e1d794cd60570d809987c1fcda3e54b"
+    },
+    "port_sources": [
+      "lib/phy/upper/signal_processors/channel_estimator/port_channel_estimator_average_impl.cpp",
+      "lib/phy/upper/signal_processors/channel_estimator/port_channel_estimator_average_impl.h",
+      "lib/phy/upper/signal_processors/channel_estimator/port_channel_estimator_helpers.cpp",
+      "lib/phy/support/interpolator/interpolator_linear_impl.cpp",
+      "lib/phy/upper/signal_processors/pusch/dmrs_pusch_estimator_impl.cpp",
+      "lib/phy/upper/signal_processors/dmrs_helper.cpp"
+    ],
+    "note": "LS matched-filter, virtual-pilot extrapolation, 15-tap FD-smoothing filter (fixed-shape for MVP's 51-PRB/stride-2 config, derived from filter_type's exact resampling arithmetic), frequency linear interpolation. DMRS reference sequence generated host-side via the K5 Gold-sequence module (oi_p2_gold_init), same TS 38.211 §5.2.1 generator, different bit-to-symbol mapping."
+  },
+  {
+    "kernel": "k2b_chanest_combine",
+    "type": "port",
+    "ocudu": {
+      "repo": "https://gitlab.com/ocudu/ocudu",
+      "tag": "release_26_04",
+      "sha": "050a2bb72e1d794cd60570d809987c1fcda3e54b"
+    },
+    "port_sources": [
+      "lib/phy/upper/signal_processors/channel_estimator/port_channel_estimator_average_impl.cpp"
+    ],
+    "note": "Time-domain combine grounded in apply_td_domain_strategy()/simd_vector_interpolate() (lines ~614-676, 864-892) -- NOT interpolator_linear_impl, which is frequency-only (an earlier draft cited it in error; caught during implementation, see VERIFICATION.md). Noise-variance/EPRE grounded in estimate_noise()/do_compute() (lines ~243-296, 763-862) with one documented simplification (operates at 306-pilot-RE granularity rather than the real code's apparent 612-wide/306-wide dimensional mix, which was not fully resolved from reading alone) -- flagged in this file's header comment and VERIFICATION.md, validated empirically against the real oracle rather than asserted correct by construction."
+  },
+  {
+    "kernel": "k3_equalizer",
+    "type": "port",
+    "ocudu": {
+      "repo": "https://gitlab.com/ocudu/ocudu",
+      "tag": "release_26_04",
+      "sha": "050a2bb72e1d794cd60570d809987c1fcda3e54b"
+    },
+    "port_sources": [
+      "lib/phy/upper/equalization/channel_equalizer_generic_impl.cpp",
+      "lib/phy/upper/equalization/channel_equalizer_generic_impl.h",
+      "lib/phy/upper/equalization/equalize_zf_1xn.h"
+    ],
+    "note": "1 Tx layer / 1 Rx port MMSE branch, confirmed by reading the source to be identical to the ZF formula for this case (OCUDU's own code comment states this). Parent LLD's original '1/(|h|^2+sigma^2)' description was wrong (never checked against real code) -- corrected during this slice, see VERIFICATION.md."
+  }
+]

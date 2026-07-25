@@ -1,0 +1,5 @@
+bg,ls,ls_idx,n_iter,n_messages,n_bits,n_mismatches,bit_diff_rate,status,emulation_mode
+1,384,1,6,10,84480,0,0.0,PASS,bare-metal-kvm-host
+2,384,1,6,10,38400,0,0.0,PASS,bare-metal-kvm-host
+1,256,0,6,10,56320,0,0.0,PASS,bare-metal-kvm-host
+2,256,0,6,10,25600,0,0.0,PASS,bare-metal-kvm-host

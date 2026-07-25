@@ -1,0 +1,32 @@
+@startuml hw_staging
+title Hardware staging (answers "GCP + AMD/Intel + live UE traffic" honestly)
+skinparam defaultTextAlignment center
+skinparam rectangle {
+  BorderColor black
+  BackgroundColor #F7F7F7
+}
+
+rectangle "STAGE 1 -- MECHANISM SPIKE\nCheap bare-metal box: 1x ConnectX card\n+ 1x GPU (any vendor), same PCIe root\nPROVE: dmabuf NIC->GPU VRAM ingest works\n(freeze-breaker: if not in <=2wk, fall back\nto CPU-staged ingest)" as S1 #FFF3CD
+
+rectangle "STAGE 2 -- PHY CORRECTNESS\nOAI FHI/xran synthetic eCPRI injector\n(no RF hardware) -> NIC -> GPU\nfull PHY (chan-est/eq/demap/LDPC)\nPROVE: bit-exact vs ground truth oracle" as S2 #D1ECF1
+
+rectangle "STAGE 3 -- MULTI-VENDOR PORTABILITY\nRepeat Stage 1+2 on GCP (NVIDIA)\nand an AMD box/cloud (AMD)\nPROVE: same OpenCL/SYCL code,\nboth vendors" as S3 #D4EDDA
+
+rectangle "STAGE 4 -- LIVE DEMO (optional, later)\nSwap synthetic injector for SDR loopback\nor real UE + real O-RU" as S4 #E2E3E5
+
+S1 --> S2
+S2 --> S3
+S3 --> S4
+
+note right of S1
+  GCP A3-Ultra/A4 ConnectX-7 = candidate
+  but UNVERIFIED for external-sender traffic
+  (tuned for GPU-to-GPU NCCL fabric) + costly.
+  Bare-metal is cheaper and more controllable.
+end note
+note right of S4
+  "GCP + AMD/Intel + live traffic in ONE step"
+  is NOT achievable -- GCP has no AMD/Intel GPU.
+  This staged plan is the honest path.
+end note
+@enduml

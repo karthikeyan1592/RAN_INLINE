@@ -1,0 +1,4 @@
+row,mean_us,p50_us,p95_us,p99_us,C_actual,N_CB,mean_slot_us,proj_c24_slot_us,notes
+baseline,11703.0,,,,24,N/A,11703.0,11703.0,FIXED PRIMARY_CONFIG anchor (do not re-measure)
+interception_only,4829.549,1075.916,17500.325,43925.334,2,2022,9659.1,115909.2,backing=/tmp/cxl_standin.bin standin=1 bpftime-IPC floor C_actual=2 active_rate=613.7 startup_s=13.63 DEV-020
+gpu_compute_full,142703.9,141856.4,152940.9,165477.5,2,1000,285407.8,3424893.6,standalone-OCL backing=/tmp/cxl_standin.bin ocl_only_mean_us=141628.0 intercept_overhead_us=1075.916 DEV-021

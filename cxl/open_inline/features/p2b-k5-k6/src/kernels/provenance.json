@@ -1,0 +1,31 @@
+[
+  {
+    "kernel": "k5_descrambler",
+    "type": "port",
+    "ocudu": {
+      "repo": "https://gitlab.com/ocudu/ocudu",
+      "tag": "release_26_04",
+      "sha": "050a2bb72e1d794cd60570d809987c1fcda3e54b"
+    },
+    "port_sources": [
+      "lib/phy/upper/sequence_generators/pseudo_random_generator_impl.cpp",
+      "lib/phy/upper/sequence_generators/pseudo_random_generator_impl.h",
+      "lib/phy/upper/sequence_generators/pseudo_random_generator_sequence.h",
+      "lib/phy/upper/sequence_generators/pseudo_random_generator_initializers.h"
+    ]
+  },
+  {
+    "kernel": "k6_rate_dematcher",
+    "type": "port",
+    "ocudu": {
+      "repo": "https://gitlab.com/ocudu/ocudu",
+      "tag": "release_26_04",
+      "sha": "050a2bb72e1d794cd60570d809987c1fcda3e54b"
+    },
+    "port_sources": [
+      "lib/phy/upper/channel_coding/ldpc/ldpc_rate_dematcher_impl.cpp",
+      "lib/phy/upper/channel_coding/ldpc/ldpc_rate_dematcher_impl.h"
+    ],
+    "note": "generic class only, per D3 — avx2/avx512/neon variants excluded"
+  }
+]

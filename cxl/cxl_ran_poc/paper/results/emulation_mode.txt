@@ -1,0 +1,71 @@
+# emulation_mode.txt — v4 session (2026-06-16)
+# Describes the exact runtime configuration used for all gate measurements in
+# this v4 run. RESULTS_SUMMARY.md §5 references this file.
+
+emulation_mode_primary: oai-rfsim-netns-veth-bpftime
+
+# ── Target binary ────────────────────────────────────────────────────────────
+target_binary: OAI nr-softmodem (gNB) + nr-uesoftmodem (UE)
+target_version: openairinterface5g, depth=1 clone (gitlab.eurecom.fr)
+target_source_modifications: ZERO (transparent interception — no lines changed)
+target_config: ci-scripts/conf_files/gnb.band66.106prb.rfsim.phytest-dora.conf (phy-test)
+target_note: srsRAN is used ONLY for the PRIMARY_CONFIG baseline anchor (Gate §1).
+             The live interception pipeline (Gates 2/3/5) targets OAI nr-softmodem exclusively.
+
+# ── bpftime uprobe interception ───────────────────────────────────────────────
+ebpf_runtime: bpftime userspace eBPF (github.com/eunomia-bpf/bpftime, depth=1)
+ebpf_jit: ubpf (BPFTIME_VM_NAME=ubpf; LLVM JIT absent — DEV-002)
+ebpf_target_lib: libldpc.so (built from OAI cmake_targets/ran_build/build/)
+ebpf_uprobe_1: nrLDPC_coding_decoder  offset=0xe9b30  (slot-level entry)
+ebpf_uprobe_2: LDPCdecoder            offset=0x63110  (per-CB entry — timing anchor)
+ebpf_attach_confirmed: yes — bpftime server log: "Created uprobe/uretprobe perf event handler,
+                        module name .../libldpc.so, offset e9b30" (and offset 63110)
+ebpf_consumer_preload: LD_PRELOAD=libbpftime-syscall-server.so (starts FIRST)
+ebpf_agent_preload:    LD_PRELOAD=libbpftime-agent.so (gNB process)
+ebpf_overhead_floor:   248.5 ns/call (Gate 0.1 micro-benchmark, N=1,200,000 calls)
+ebpf_note: 2,636 µs/slot interception overhead in Phase 5 ablation is poll-dominated
+           (2 ms polling loop in ldpc_measure.c — DEV-014), not bpftime fundamental latency.
+
+# ── Network / rfsimulator ─────────────────────────────────────────────────────
+rf_backend: OAI rfsimulator (TCP, no real RF hardware)
+network_isolation: Linux network namespaces (gnb-ns / ue-ns)
+veth_pair: veth-gnb (gnb-ns, 10.77.0.2/30) ↔ veth-ue (ue-ns, 10.77.0.1/30)
+setup_script: ops/cxl-poc-droplet/scripts/setup_netns.sh
+reconfig_path: gNB writes reconfig.raw / rbconfig.raw to its CWD (phase2_intercept/).
+               UE reads via --reconfig-file $PROBE_DIR/reconfig.raw (DEV-007 fix).
+
+# ── OpenCL compute backend ────────────────────────────────────────────────────
+opencl_backend: PoCL 5.0 (Portable Computing Language, CPU device)
+opencl_note: PoCL runs OpenCL kernels on host CPU — NOT a real GPU accelerator (DEV-014).
+             The 163,528 µs/slot gpu_compute_full measurement reflects CPU OpenCL on WSL2.
+             A real GPU device (zero code change) is projected to reduce compute by ~6×
+             (→ 27,561 µs/slot, 55.1×). This projection is labelled `projected` everywhere.
+opencl_kernel: ldpc_decode_kernel.cl (layered min-sum, BG1/BG2, bit-exact vs srsRAN)
+
+# ── CXL path ──────────────────────────────────────────────────────────────────
+cxl_status: DEFERRED
+cxl_note: CXL kernel path validated end-to-end (QEMU 8.2 pxb-cxl + cxl-type3 +
+          persistent-memdev, Ubuntu 6.8, dax reconfigure to system-ram mode, 5/5 checklist).
+          CXLMemSim latency sweep not run: WSL2 has no hardware PMU (perf_event_open ENOENT,
+          DEV-005). Phase 4 row in latency_ladder_v2.csv has source=deferred.
+cxl_emulation_mode_for_parts_A_to_E: qemu-kvm-cxl-pmem-hypervisor-bit-cleared-node1-mbind-gte16kb
+
+# ── Host environment ──────────────────────────────────────────────────────────
+host: WSL2 Ubuntu 24.04 LTS, kernel 6.6.114.1-microsoft-standard-WSL2
+cpu: x86_64, 4 vCPU (WSL2), AVX2 supported
+memory: 8 GB
+
+# ── emulation_mode vocabulary (matches ablation_raw.csv column) ───────────────
+oai-rfsim-netns-veth-bpftime:
+    OAI nr-softmodem gNB + nr-uesoftmodem UE, rfsimulator TCP transport,
+    gnb-ns/ue-ns Linux network namespaces, veth pair, bpftime uprobe interception.
+    All Phase 2/3/5 gate measurements use this mode.
+bare-metal-kvm-host:
+    DigitalOcean BLR1 s-4vcpu-8gb droplet, no QEMU VM. Used for PRIMARY_CONFIG
+    baseline (srsRAN tbs_calculator + AVX2 min-sum benchmark, Gate §1).
+qemu-kvm-cxl-pmem-hypervisor-bit-cleared-node1-mbind-gte16kb:
+    QEMU 8.2 inside WSL2, pxb-cxl + cxl-type3 + persistent-memdev, Ubuntu 6.8,
+    NUMA node 1 = CXL-emulated memory. Parts A-E (Gate 4 deferred sweep).
+software-synthetic-wsl2:
+    SUPERSEDED. v3 session synthetic NUMA model (srsRAN + libl1_offload.so +
+    tmpfs shm). Not used in any v4 gate result.

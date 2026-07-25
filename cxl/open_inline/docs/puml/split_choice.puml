@@ -1,0 +1,14 @@
+@startuml split_choice
+title O-RAN split choice: 7.2x (chosen) vs split 8 (future)
+skinparam rectangle {
+  BackgroundColor #F7F7F7
+}
+rectangle "SPLIT 7.2x  (CHOSEN)\nRU does: RF + FFT\nGPU/DU does: chan-est, eq, demap, LDPC\n= 'complete L1' means everything the DU owns\nLower fronthaul bandwidth (freq-domain REs)\nMatches real Aerial/cuPHY deployments" as S72 #D4EDDA
+rectangle "SPLIT 8  (FUTURE / STRETCH)\nRU does: RF only\nGPU/DU does: FFT + everything else\nMuch higher fronthaul bandwidth\n(raw time-domain IQ)\nOut of scope unless specifically motivated" as S8 #D1ECF1
+S72 -[hidden]-> S8
+note bottom of S72
+  OAI's FHI/xran fronthaul stack supports BOTH —
+  choosing 7.2x is a scoping decision, not a
+  capability limitation.
+end note
+@enduml

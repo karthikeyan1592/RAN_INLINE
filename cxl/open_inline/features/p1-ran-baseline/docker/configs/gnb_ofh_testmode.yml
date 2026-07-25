@@ -1,0 +1,145 @@
+# p1-ran-baseline — gnb config (P1-R5). Real, grounded template: cell_cfg/log/pcap/cu_cp copied
+# from third_party/ocudu/configs/gnb_ru_picocom_scb_tdd_n78_20mhz.yml (a real, upstream-shipped
+# split-7.2x OFH example for the SAME TDD n78 20MHz cell shape HLD D5 selects), ru_ofh section
+# adapted from that same file with this rig's own fronthaul plan (MAC/VLAN/eAxC, IF-P1-FRONTHAUL),
+# test_mode copied verbatim from third_party/ocudu/configs/testmode.yml (the only upstream
+# test_mode example that exists).
+#
+# `cu_cp.amf.addrs`/`bind_addrs` below are placeholders, exactly like upstream's OWN default
+# configs (gnb_rf_b200_tdd_n78_20mhz.yml, gnb_ru_picocom_...yml) ship placeholder AMF addresses —
+# the upstream compose's `gnb_compose_config.yml` (a SECOND `-c` file, injected by
+# docker-compose.yml itself, untouched by this project) overrides them with the real
+# compose-network AMF address at container start. This is upstream's own established override
+# pattern (verified: the b200 default config ships the identical placeholder), not a P1 invention.
+#
+# GNB_CONFIG_PATH (set by helpers/*.sh to this file's absolute path) is the upstream-provided env
+# hook this file loads through (`docker-compose.yml`'s `configs.gnb_config.yml.file:
+# ${GNB_CONFIG_PATH:-...}`) — no upstream file edited.
+
+cu_cp:
+  amf:
+    addrs: 127.0.1.100
+    port: 38412
+    bind_addrs: 127.0.0.1
+    supported_tracking_areas:
+      - tac: 7
+        plmn_list:
+          - plmn: "00101"
+            tai_slice_support_list:
+              - sst: 1
+
+ru_ofh:
+  t1a_max_cp_dl: 350
+  t1a_min_cp_dl: 250
+  t1a_max_cp_ul: 250
+  t1a_min_cp_ul: 150
+  t1a_max_up: 200
+  t1a_min_up: 80
+  ta4_max: 500
+  ta4_min: 10
+  is_prach_cp_enabled: false
+  compr_method_ul: bfp
+  compr_bitwidth_ul: 9
+  compr_method_dl: bfp
+  compr_bitwidth_dl: 9
+  compr_method_prach: bfp
+  compr_bitwidth_prach: 9
+  iq_scaling: 1.0
+  cells:
+    - network_interface: eth0   # container's fronthaul iface -- Q6 RESOLVED 2026-07-25 by first
+      # real local bring-up: `docker exec ocudu_gnb ip -o link show` showed eth0 carries MAC
+      # 02:6f:69:00:01:02 (the pinned fronthaul DU MAC), NOT eth1 as originally guessed -- eth1 is
+      # actually the `ran` (backhaul) network's auto-generated MAC. The wrong guess meant gnb's OFH
+      # transmitter was binding to the backhaul link the whole time: zero eCPRI frames reached the
+      # fronthaul bridge, explaining an initial 0-packet capture despite live-looking MAC/PHY test-
+      # mode counters (which are synthesized within du_high's MAC test-mode PDU injection --
+      # lib/du/du_high/test_mode/mac_test_mode_helpers.cpp's create_test_pdu_with_bsr/... -- and
+      # don't by themselves prove anything reached the wire). Confirmed stable across compose
+      # versions is NOT guaranteed by this fix alone; if a future Docker/Compose version changes
+      # network-attachment order, `ip -o link show` inside the container is the way to re-confirm.
+      ru_mac_addr: "02:6f:69:00:01:01"
+      du_mac_addr: "02:6f:69:00:01:02"
+      vlan_tag_cp: 1
+      vlan_tag_up: 1
+      prach_port_id: [4]
+      dl_port_id: [0]
+      ul_port_id: [0]
+
+cell_cfg:
+  dl_arfcn: 625000
+  band: 78
+  channel_bandwidth_MHz: 20
+  common_scs: 30
+  plmn: "00101"
+  tac: 7
+  pci: 1
+  prach:
+    prach_config_index: 159
+    prach_root_sequence_index: 1
+    zero_correlation_zone: 0
+    prach_frequency_start: 0
+  tdd_ul_dl_cfg:
+    nof_dl_slots: 7
+    nof_ul_slots: 2
+
+test_mode:
+  test_ue:
+    rnti: 0x44
+    ri: 1
+    cqi: 15
+    nof_ues: 1
+    pusch_active: true
+    pdsch_active: true
+
+log:
+  # stdout, not a file path (2026-07-25, found on the real GCP run): with `filename: /tmp/gnb.log`
+  # (copied from the upstream b200/picocom reference configs), the real application log goes to a
+  # file INSIDE the container -- `docker logs` only ever showed a completely separate periodic
+  # stdout-metrics table (from `metrics.autostart_stdout_metrics`, an unrelated output path), never
+  # the actual log. bring_up.sh's P1-R7 check (`docker logs ... | grep ...`) can only ever see
+  # stdout -- standard container practice (12-factor: log to stdout, let the runtime capture it)
+  # and the only way this project's log-based verification can work at all.
+  filename: stdout
+  # all_level stays warning; ngap_level alone goes to info (2026-07-25, second real-GCP-run
+  # correction). First attempt set `all_level: info` globally -- it DID surface the NGSetupRequest/
+  # NGSetupResponse/"Connected to AMF" lines (confirmed once, manually), but also made the OFH
+  # layer log every single received U-plane section at info severity, which at real traffic rates
+  # produces enormous log volume within seconds (`docker logs` on that container became too slow
+  # to even retrieve over SSH within a normal timeout). That volume risked burying or entirely
+  # discarding the NGAP evidence in OCUDU's own bounded async log queue (the same "backend queue
+  # size about to reach its maximum capacity... entries will get discarded" condition seen
+  # earlier in this project, p2f/local-bring-up notes). ocudulog exposes NGAP as its own
+  # independently-configurable category (cu_cp_unit_logger_config::ngap_level, YAML key
+  # `ngap_level`, default `warning`, verified in apps/units/o_cu_cp/cu_cp/cu_cp_unit_config_yaml_
+  # writer.cpp) -- setting only this one category to `info` gets exactly the NGAP evidence P1-R7
+  # needs without the OFH flood. Both bugs (filename above, and now this) trace to the same root
+  # cause: nobody had exercised this project's log-based verification method against a live rig
+  # until this session, because every earlier run in this project either lacked SCTP (bring_up.sh
+  # never got past its own precondition gate) or was a manual local dry-run that never checked
+  # gnb's real application log at all (see p1 VERIFICATION.md's 2026-07-25 local bring-up entry).
+  ngap_level: info
+  # ofh_level: error, not the warning default (2026-07-25, third real-GCP-run correction). At
+  # `ofh_level: warning` (the default), gnb logs "missed incoming User-Plane uplink/PRACH messages"
+  # continuously -- observed at ~32,600 of 32,753 total log lines (99.7%) within the first ~60-90s
+  # of a fresh bring-up, an extreme flood that both slowed `docker logs` retrieval and (empirically,
+  # confirmed by re-checking live moments later and finding the NGAP lines WERE present all along)
+  # made bring_up.sh's exact-t=60s NG-Setup grep unreliable, not because NG-Setup hadn't happened,
+  # but because the check ran into this volume. This warning reflects gnb's own OFH RX not seeing
+  # an incoming U-plane frame at the exact slot/symbol it expected -- almost certainly the same
+  # class of independently-clocked-emulated-components timing mismatch this project's Honesty
+  # notes already anticipate for non-realtime SIM-tier hosts (spec/SPEC.md), NOT evidence that
+  # eCPRI traffic isn't actually reaching the wire: a real, filtered tcpdump capture on a separate
+  # local bring-up (this feature's VERIFICATION.md, 2026-07-25) already proved real UL U-plane
+  # frames genuinely leave `ru-emu` and traverse the bridge, independent of whether gnb's own slot
+  # counter considers them on-time. Suppressing this one category to `error` (not silently -- see
+  # this comment) removes the log-volume problem without touching the eCPRI wire check (P1-R8 uses
+  # tcpdump on the bridge, not this log, so it is unaffected either way -- see assert_ecpri.sh).
+  # Still open, not chased further here: WHY the mismatch happens at all (could be worth revisiting
+  # if it turns out to affect real captured frame RATES, not just this log noise).
+  ofh_level: error
+
+pcap:
+  mac_enable: false
+  mac_filename: /tmp/gnb_mac.pcap
+  ngap_enable: false
+  ngap_filename: /tmp/gnb_ngap.pcap

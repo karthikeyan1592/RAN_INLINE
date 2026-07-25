@@ -1,0 +1,19 @@
+[
+  {
+    "kernel": "k4_demapper",
+    "type": "port",
+    "ocudu": {
+      "repo": "https://gitlab.com/ocudu/ocudu",
+      "tag": "release_26_04",
+      "sha": "050a2bb72e1d794cd60570d809987c1fcda3e54b"
+    },
+    "port_sources": [
+      "lib/phy/upper/channel_modulation/demodulation_mapper_impl.cpp",
+      "lib/phy/upper/channel_modulation/demodulation_mapper_qpsk.cpp",
+      "lib/phy/upper/channel_modulation/demodulation_mapper_qam16.cpp",
+      "lib/phy/upper/channel_modulation/demodulation_mapper_qam64.cpp",
+      "lib/phy/upper/log_likelihood_ratio.cpp"
+    ],
+    "note": "Scalar paths only (P2-R2/D3): never the AVX2/AVX512/NEON batched demod_*_avx2/avx512/neon functions in the same files. QPSK linear formula, 16QAM piecewise-linear (2 breakpoints), 64QAM piecewise-linear via interval_function lookup tables (8/8/4 intervals for bit-pairs 01/23/45). quantize() (clip + round to int8 step=range_limit/LLR_MAX) ported from log_likelihood_ratio.cpp."
+  }
+]

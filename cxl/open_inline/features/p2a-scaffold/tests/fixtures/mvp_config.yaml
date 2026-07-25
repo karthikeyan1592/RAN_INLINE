@@ -1,0 +1,35 @@
+schema: oi-p2-config/1
+duplex: tdd
+band: n78
+numerology: 1
+bandwidth_mhz: 20
+nof_ues: 1
+nof_layers: 1
+nof_rx_ports: 1
+pusch_allocation:
+  rb_start: 0
+  nof_prb: 51
+  symbol_start: 0
+  nof_symbols: 14
+  mapping_type: A
+dmrs:
+  type: 1
+  additional_positions: 2
+  cdm_groups_without_data: 2
+mcs_set: [4, 13, 21]
+harq:
+  new_data_always: true
+  rv: 0
+uci_on_pusch: none
+scrambling:
+  n_id: 1
+  rnti: 0x4601
+ofh:
+  eaxc: [0]
+  compression: uncompressed_16bit
+  vlan: false
+oracle:
+  srsran_vectors_path: /root/linux_env/cxl/third_party/srsRAN_Project
+  sionna_vectors_path: /tmp/fake_sionna_vectors
+device:
+  platform_env: OI_CL_PLATFORM

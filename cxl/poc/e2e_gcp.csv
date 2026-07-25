@@ -1,0 +1,10 @@
+metric,value,unit
+uprobe_hits,4080,count
+llr_bytes_total,12204320,bytes
+last_llr_len,12288,bytes
+last_seq,4080,count
+ldpc_wall_s,10.703,seconds
+ldpc_reps,20,count
+cxl_read_latency_ns,34329,ns
+primary_config_us_slot,11703,us
+primary_config_slowdown,23.4,x

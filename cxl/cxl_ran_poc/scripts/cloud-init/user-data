@@ -1,0 +1,196 @@
+#cloud-config
+# First-boot provisioning for the CXL RAN PoC VM.
+# This runs once when the Ubuntu 24.04 cloud image first boots.
+# Estimated time: 15-25 min (dominated by srsRAN Project build).
+
+hostname: cxl-board
+manage_etc_hosts: true
+
+# Mount the 9p virtio share exposed by setup_qemu.sh
+mounts:
+  - [ "poc_src", "/mnt/poc_src", "9p", "trans=virtio,version=9p2000.L,rw", "0", "0" ]
+
+bootcmd:
+  - mkdir -p /mnt/poc_src
+  - mount -t 9p -o trans=virtio,version=9p2000.L poc_src /mnt/poc_src 2>/dev/null || true
+
+ssh_pwauth: true
+
+users:
+  - name: ubuntu
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    lock_passwd: false
+    passwd: "$6$rounds=4096$cxlran$uZ2J9L6v1L.7XYSuFk4k0lVK8nBq2J6BnmgN6XsaF5K3HN0mD2yJkTiJXPh4Q3JlzP1r4kPK8Nz3YjZt2u1"
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJW1spQy57A1fl1hKxUrABlvnljwFbmu9h0/lfBvosO1 cxl-poc-host
+
+# Grow root partition to use full qcow2 disk
+growpart:
+  mode: auto
+  devices: [/]
+
+resize_rootfs: true
+
+# ── package installation ──────────────────────────────────────────────────────
+package_update: true
+package_upgrade: false
+
+packages:
+  # Build essentials
+  - build-essential
+  - cmake
+  - git
+  - ninja-build
+  - pkg-config
+  - python3
+  - python3-pip
+  # srsRAN Project dependencies
+  - libfftw3-dev
+  - libmbedtls-dev
+  - libboost-all-dev
+  - libconfig++-dev
+  - libsctp-dev
+  - libzmq3-dev
+  - libuhd-dev
+  - libyaml-cpp-dev
+  - libgtest-dev
+  - clang
+  - clang-format
+  # eBPF toolchain
+  - libbpf-dev
+  - libbpf1
+  - linux-headers-generic
+  - bpftool
+  - clang
+  - llvm
+  - libelf-dev
+  # CXL + NUMA tools (linux-modules-extra provides cxl_core etc.)
+  - ndctl
+  - daxctl
+  - numactl
+  - libnuma-dev
+  - linux-modules-extra-generic
+  # OpenCL / PoCL (GPU daemon)
+  - libpocl-dev
+  - pocl-opencl-icd
+  - ocl-icd-libopencl1
+  - clinfo
+  # Measurement / paper tools
+  - python3-pandas
+  - python3-matplotlib
+  - python3-numpy
+  # Utilities
+  - wget
+  - curl
+  - genisoimage
+  - cloud-image-utils
+  - jq
+  - htop
+  - numactl
+
+# ── runcmd: build everything ─────────────────────────────────────────────────
+runcmd:
+  # ── 0. environment ──────────────────────────────────────────────────────────
+  - export HOME=/root
+  - export DEBIAN_FRONTEND=noninteractive
+  - export MAKEFLAGS="-j$(nproc)"
+  - export NPROC=$(nproc)
+  - mkdir -p /opt/cxl_ran_poc /opt/srsran /var/log/cxl_provision
+
+  # ── 1. clone PoC source into VM ─────────────────────────────────────────────
+  # The PoC source is injected via virtio-9p share (see setup_qemu.sh).
+  # If not mounted, we skip — the user can rsync manually.
+  - |
+    if mountpoint -q /mnt/poc_src 2>/dev/null; then
+      cp -r /mnt/poc_src/. /opt/cxl_ran_poc/
+      echo "PoC source copied from 9p share" >> /var/log/cxl_provision/provision.log
+    else
+      echo "WARN: /mnt/poc_src not mounted; PoC source not copied" >> /var/log/cxl_provision/provision.log
+    fi
+
+  # ── 2. build PoC (l1_sim, gpu_daemon, ebpf, offload, measurement) ───────────
+  - |
+    if [ -f /opt/cxl_ran_poc/Makefile ]; then
+      cd /opt/cxl_ran_poc
+      make all 2>&1 | tee /var/log/cxl_provision/poc_build.log \
+        && echo "PoC build: OK" >> /var/log/cxl_provision/provision.log \
+        || echo "PoC build: FAILED (check poc_build.log)" >> /var/log/cxl_provision/provision.log
+    fi
+
+  # ── 3. clone srsRAN Project ─────────────────────────────────────────────────
+  - |
+    cd /opt
+    if [ ! -d srsran/.git ]; then
+      git clone --depth 1 --branch release_24_10 \
+        https://github.com/srsran/srsRAN_Project.git srsran \
+        2>&1 | tee /var/log/cxl_provision/srsran_clone.log
+    fi
+
+  # ── 4. build srsRAN Project (standalone benchmarks only — faster) ───────────
+  # Targets: ldpc_decoder_benchmark, ldpc_encoder_benchmark, pusch_processor_benchmark
+  - |
+    cd /opt/srsran
+    mkdir -p build
+    cd build
+    cmake .. \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DENABLE_EXPORT=ON \
+      -DENABLE_UHD=OFF \
+      -DENABLE_ZEROMQ=OFF \
+      -DENABLE_FAPI=OFF \
+      -DBUILD_TESTING=OFF \
+      -GNinja \
+      2>&1 | tee /var/log/cxl_provision/srsran_cmake.log
+    ninja -j${NPROC} ldpc_decoder_benchmark ldpc_encoder_benchmark pusch_processor_benchmark \
+      2>&1 | tee /var/log/cxl_provision/srsran_build.log \
+      && echo "srsRAN build: OK" >> /var/log/cxl_provision/provision.log \
+      || echo "srsRAN build: FAILED (check srsran_build.log)" >> /var/log/cxl_provision/provision.log
+
+  # ── 5. install srsRAN benchmark binaries system-wide ───────────────────────
+  - |
+    if [ -f /opt/srsran/build/apps/examples/ldpc/ldpc_decoder_benchmark ]; then
+      cp /opt/srsran/build/apps/examples/ldpc/ldpc_decoder_benchmark /usr/local/bin/
+      cp /opt/srsran/build/apps/examples/ldpc/ldpc_encoder_benchmark /usr/local/bin/
+      echo "srsRAN benchmarks installed to /usr/local/bin/" >> /var/log/cxl_provision/provision.log
+    elif [ -f /opt/srsran/build/tests/benchmarks/phy/upper/channel_coding/ldpc_decoder_benchmark ]; then
+      # location varies with srsRAN version
+      find /opt/srsran/build -name "ldpc_decoder_benchmark" -exec cp {} /usr/local/bin/ \;
+      find /opt/srsran/build -name "ldpc_encoder_benchmark" -exec cp {} /usr/local/bin/ \;
+      find /opt/srsran/build -name "pusch_processor_benchmark" -exec cp {} /usr/local/bin/ \;
+      echo "srsRAN benchmarks installed (found via find)" >> /var/log/cxl_provision/provision.log
+    fi
+
+  # ── 6. clone and build CXLMemSim (Stage 3 latency model) ────────────────────
+  - |
+    cd /opt
+    if [ ! -d CXLMemSim/.git ]; then
+      git clone --depth 1 https://github.com/SlugLab/CXLMemSim.git \
+        2>&1 | tee /var/log/cxl_provision/cxlmemsim_clone.log \
+        || echo "CXLMemSim clone: FAILED (network?)" >> /var/log/cxl_provision/provision.log
+    fi
+    if [ -d /opt/CXLMemSim ]; then
+      cd /opt/CXLMemSim
+      mkdir -p build && cd build
+      cmake .. -DCMAKE_BUILD_TYPE=Release -GNinja 2>/dev/null \
+        && ninja -j${NPROC} 2>&1 | tee /var/log/cxl_provision/cxlmemsim_build.log \
+        && echo "CXLMemSim build: OK" >> /var/log/cxl_provision/provision.log \
+        || echo "CXLMemSim build: FAILED (non-critical for Stage 1/2)" >> /var/log/cxl_provision/provision.log
+    fi
+
+  # ── 7. create convenience symlinks ──────────────────────────────────────────
+  - ln -sf /opt/cxl_ran_poc /home/ubuntu/cxl_ran_poc
+  - ln -sf /opt/srsran      /home/ubuntu/srsran
+  - chown -h ubuntu:ubuntu /home/ubuntu/cxl_ran_poc /home/ubuntu/srsran
+
+  # ── 8. write done marker ────────────────────────────────────────────────────
+  - echo "PROVISIONED $(date -Iseconds)" > /var/log/cxl_provision/DONE
+
+final_message: |
+  ============================================================
+  CXL RAN PoC VM provisioning complete.
+  Log: /var/log/cxl_provision/
+  PoC source: /opt/cxl_ran_poc/
+  srsRAN benchmarks: /usr/local/bin/ldpc_decoder_benchmark
+  Next: run /opt/cxl_ran_poc/scripts/in_vm_setup.sh as root
+  ============================================================

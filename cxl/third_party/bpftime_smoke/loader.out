@@ -1,0 +1,28 @@
+libbpf: loading object 'smoke_bpf' from buffer
+libbpf: elf: section(2) .symtab, size 168, link 1, flags 0, type=2
+libbpf: elf: section(3) uprobe//root/linux_env/cxl/third_party/bpftime_smoke/test_target:target_func, size 104, link 0, flags 6, type=1
+libbpf: sec 'uprobe//root/linux_env/cxl/third_party/bpftime_smoke/test_target:target_func': found program 'on_target_func' at insn offset 0 (0 bytes), code size 13 insns (104 bytes)
+libbpf: elf: section(4) license, size 4, link 0, flags 3, type=1
+libbpf: license of smoke_bpf is GPL
+libbpf: elf: section(5) .maps, size 32, link 0, flags 3, type=1
+libbpf: elf: section(6) .reluprobe//root/linux_env/cxl/third_party/bpftime_smoke/test_target:target_func, size 16, link 2, flags 40, type=9
+libbpf: elf: section(7) .BTF, size 1227, link 0, flags 0, type=1
+libbpf: elf: section(8) .BTF.ext, size 176, link 0, flags 0, type=1
+libbpf: looking for externs among 7 symbols...
+libbpf: collected 0 externs total
+[2026-06-15 06:45:44.659] [info] [bpftime_config.cpp:129] Using VM: ubpf
+[2026-06-15 06:45:44.659] [info] [syscall_context.cpp:114] Init bpftime syscall mocking..
+[2026-06-15 06:45:44.659] [info] [syscall_context.cpp:115] The log will be written to: ~/.bpftime/runtime.log
+libbpf: map 'call_count': at sec_idx 5, offset 0.
+libbpf: map 'call_count': found type = 2.
+libbpf: map 'call_count': found key [8], sz = 4.
+libbpf: map 'call_count': found value [11], sz = 8.
+libbpf: map 'call_count': found max_entries = 1.
+libbpf: sec '.reluprobe//root/linux_env/cxl/third_party/bpftime_smoke/test_target:target_func': collecting relocation for section(3) 'uprobe//root/linux_env/cxl/third_party/bpftime_smoke/test_target:target_func'
+libbpf: sec '.reluprobe//root/linux_env/cxl/third_party/bpftime_smoke/test_target:target_func': relo #0: insn #4 against 'call_count'
+libbpf: prog 'on_target_func': found map 0 (call_count, sec 5, off 0) for insn #4
+libbpf: object 'smoke_bpf': failed (-22) to create BPF token from '/sys/fs/bpf', skipping optional step...
+libbpf: map 'call_count': created successfully, fd=4
+libbpf: elf: symbol address match for 'target_func' in '/root/linux_env/cxl/third_party/bpftime_smoke/test_target': 0x1350
+smoke loader: probe attached, waiting (Ctrl-C to dump)
+call_count = 1200000

@@ -1,0 +1,20 @@
+[
+  {
+    "kernel": "k1_depacketizer",
+    "type": "fresh",
+    "ocudu": {
+      "repo": "https://gitlab.com/ocudu/ocudu",
+      "tag": "release_26_04",
+      "sha": "050a2bb72e1d794cd60570d809987c1fcda3e54b"
+    },
+    "references": [
+      "include/ocudu/ofh/serdes/ofh_uplane_message_decoder_properties.h",
+      "include/ocudu/ofh/serdes/ofh_uplane_message_properties.h",
+      "include/ocudu/ofh/serdes/ofh_message_properties.h",
+      "lib/ofh/serdes/ofh_uplane_message_decoder_impl.cpp",
+      "lib/ofh/serdes/ofh_uplane_message_decoder_static_compression_impl.cpp",
+      "lib/ofh/ecpri/ecpri_packet_decoder_impl.cpp"
+    ],
+    "note": "T4 fresh (P2-R3, no CPU-to-GPU port exists per use_case_classification.md §0.2). References are read ONLY for field semantics / real byte-offset derivation (oi_oran_wire_layout.h); no code copied. lib/ paths listed (not just include/) because the exact bit-packed wire layout — the actual subject of Q2 — is only fully specified in the .cpp decode logic, not the public struct headers."
+  }
+]

@@ -1,0 +1,35 @@
+@startuml phase2_cxl_handoff
+title Phase 2 (locked, not yet built) -- CXL replaces ONE leg: GPU->CPU handoff
+skinparam componentStyle rectangle
+
+package "PHASE 1 (working baseline)" #D4EDDA {
+  [GPU: decoded TB bits\nin VRAM] as G1
+  [pinned host buffer] as P1
+  [CPU reads] as C1
+  G1 --> P1 : hipMemcpyAsync /\nclEnqueueReadBuffer\n(free completion event)
+  P1 --> C1
+}
+
+package "PHASE 2 (locked scope, later)" #FFF3CD {
+  [GPU: decoded TB bits\nin VRAM] as G2
+  [CXL shared region\n(Type-3)] as X2
+  [CPU reads\n(same region)] as C2
+  G2 --> X2 : DMA write\n(streaming, ~20 GB/s,\n~658 ns -- CCCL, NVIDIA/CUDA;\nAMD/OpenCL path UNPROVEN)
+  X2 --> C2 : needs explicit status-flag/\npolling (no free completion\nevent on raw CXL memory)
+}
+
+note bottom of X2
+  Everything else is UNCHANGED from Phase 1:
+  NIC->GPU ingest, GPU-resident full PHY,
+  split 7.2x choice, PHY<->L2 seam.
+  Only this one leg moves to CXL.
+end note
+note bottom of C2
+  Research question: does CXL work here,
+  and how does it compare to the Phase-1
+  pinned-memory baseline?
+  No perf claim from QEMU/emulated CXL --
+  real hardware only (three-tier method,
+  research/feasibility_research.md).
+end note
+@enduml

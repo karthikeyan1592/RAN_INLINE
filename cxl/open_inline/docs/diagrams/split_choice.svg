@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="339px" preserveAspectRatio="none" style="width:686px;height:339px;" version="1.1" viewBox="0 0 686 339" width="686px" zoomAndPan="magnify"><defs><filter height="300%" id="f1dml0ukvkzynq" width="300%" x="-1" y="-1"><feGaussianBlur result="blurOut" stdDeviation="2.0"/><feColorMatrix in="blurOut" result="blurOut2" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .4 0"/><feOffset dx="4.0" dy="4.0" in="blurOut2" result="blurOut3"/><feBlend in="SourceGraphic" in2="blurOut3" mode="normal"/></filter></defs><g><text fill="#000000" font-family="sans-serif" font-size="18" lengthAdjust="spacingAndGlyphs" textLength="454" x="119.5" y="16.708">O-RAN split choice: 7.2x (chosen) vs split 8 (future)</text><!--MD5=[7942cf8f9262536f64b928b142254530]
+entity S72--><rect fill="#D4EDDA" filter="url(#f1dml0ukvkzynq)" height="122.4375" style="stroke: #000000; stroke-width: 1.5;" width="479" x="96.5" y="28.9531"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="147" x="106.5" y="51.9482">SPLIT 7.2x  (CHOSEN)</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="131" x="106.5" y="68.2451">RU does: RF + FFT</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="292" x="106.5" y="84.542">GPU/DU does: chan-est, eq, demap, LDPC</text><text fill="#000000" font-family="sans-serif" font-size="18" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="459" x="106.5" y="104.5518">'complete L1' means everything the DU owns</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="310" x="106.5" y="121.792">Lower fronthaul bandwidth (freq-domain REs)</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="273" x="106.5" y="138.0889">Matches real Aerial/cuPHY deployments</text><!--MD5=[ce611cd767df6ac8a45071985dabb378]
+entity S8--><rect fill="#D1ECF1" filter="url(#f1dml0ukvkzynq)" height="117.7813" style="stroke: #000000; stroke-width: 1.5;" width="308" x="6" y="210.9531"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="203" x="16" y="233.9482">SPLIT 8  (FUTURE / STRETCH)</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="118" x="16" y="250.2451">RU does: RF only</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="254" x="16" y="266.542">GPU/DU does: FFT + everything else</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="227" x="16" y="282.8389">Much higher fronthaul bandwidth</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="142" x="16" y="299.1357">(raw time-domain IQ)</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="288" x="16" y="315.4326">Out of scope unless specifically motivated</text><path d="M349.5,242.4531 L349.5,297.8516 A0,0 0 0 0 349.5,297.8516 L674.5,297.8516 A0,0 0 0 0 674.5,297.8516 L674.5,252.4531 L664.5,242.4531 L489.45,242.4531 L395.59,151.2131 L481.45,242.4531 L349.5,242.4531 A0,0 0 0 0 349.5,242.4531 " fill="#FBFB77" filter="url(#f1dml0ukvkzynq)" style="stroke: #A80036; stroke-width: 1.0;"/><path d="M664.5,242.4531 L664.5,252.4531 L674.5,252.4531 L664.5,242.4531 " fill="#FBFB77" style="stroke: #A80036; stroke-width: 1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="304" x="355.5" y="259.52">OAI's FHI/xran fronthaul stack supports BOTH —</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="264" x="355.5" y="274.6528">choosing 7.2x is a scoping decision, not a</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="127" x="355.5" y="289.7856">capability limitation.</text><!--MD5=[20866037db13c27b9768a157e12a4060]
+link S72 to S8--><!--MD5=[cb8b13b5114bae96e0c9f67c56390909]
+@startuml split_choice
+title O-RAN split choice: 7.2x (chosen) vs split 8 (future)
+skinparam rectangle {
+  BackgroundColor #F7F7F7
+}
+rectangle "SPLIT 7.2x  (CHOSEN)\nRU does: RF + FFT\nGPU/DU does: chan-est, eq, demap, LDPC\n= 'complete L1' means everything the DU owns\nLower fronthaul bandwidth (freq-domain REs)\nMatches real Aerial/cuPHY deployments" as S72 #D4EDDA
+rectangle "SPLIT 8  (FUTURE / STRETCH)\nRU does: RF only\nGPU/DU does: FFT + everything else\nMuch higher fronthaul bandwidth\n(raw time-domain IQ)\nOut of scope unless specifically motivated" as S8 #D1ECF1
+S72 -[hidden]-> S8
+note bottom of S72
+  OAI's FHI/xran fronthaul stack supports BOTH —
+  choosing 7.2x is a scoping decision, not a
+  capability limitation.
+end note
+@enduml
+
+PlantUML version 1.2020.02(Sun Mar 01 10:22:07 UTC 2020)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Java Version: 21.0.11+10-1-24.04.2-Ubuntu
+Operating System: Linux
+Default Encoding: UTF-8
+Language: en
+Country: null
+--></g></svg>

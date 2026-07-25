@@ -1,0 +1,92 @@
+# Multi-stage build: compiles QEMU 9.x from source.
+# Only the qemu-system-x86_64 binary is kept in the final image,
+# keeping the layer that lands on the host to ~40 MB.
+#
+# Usage (via scripts/build_qemu.sh):
+#   docker build -f docker/Dockerfile.qemu -t cxl-qemu-builder .
+#   docker create --name qemu-extract cxl-qemu-builder
+#   docker cp qemu-extract:/out/qemu-system-x86_64 /mnt/devdata/cxl_vm/
+#   docker rm qemu-extract
+
+# ── stage 1: build ──────────────────────────────────────────────────────────
+FROM ubuntu:24.04 AS builder
+
+ARG QEMU_TAG=v9.2.3
+ARG JOBS=4
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git \
+        ca-certificates \
+        ninja-build \
+        pkg-config \
+        python3 \
+        python3-pip \
+        meson \
+        gcc \
+        g++ \
+        make \
+        bzip2 \
+        libglib2.0-dev \
+        libpixman-1-dev \
+        libslirp-dev \
+        zlib1g-dev \
+        libfdt-dev \
+        libcap-ng-dev \
+        libattr1-dev \
+        acpica-tools \
+        libcap-dev \
+        liburing-dev \
+        libgcrypt-dev \
+        libgnutls28-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src
+RUN git clone --depth 1 --branch ${QEMU_TAG} \
+        https://gitlab.com/qemu-project/qemu.git qemu
+
+WORKDIR /src/qemu
+RUN ./configure \
+        --target-list=x86_64-softmmu \
+        --enable-kvm \
+        --enable-slirp \
+        --enable-virtfs \
+        --disable-docs \
+        --disable-werror \
+        --prefix=/usr/local \
+    && ninja -C build -j${JOBS}
+
+# ── stage 2: export ─────────────────────────────────────────────────────────
+FROM ubuntu:24.04 AS export
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libglib2.0-0 \
+        libpixman-1-0 \
+        libslirp0 \
+        libfdt1 \
+        zlib1g \
+        liburing2 \
+        libgnutls30 \
+        libgmp10 \
+        libnettle8 \
+        libhogweed6 \
+        libidn2-0 \
+        libunistring5 \
+        libp11-kit0 \
+        libtasn1-6 \
+        libcap-ng0 \
+        libattr1 \
+        seabios \
+        ovmf \
+        qemu-system-data \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir /out
+COPY --from=builder /src/qemu/build/qemu-system-x86_64 /out/
+COPY --from=builder /src/qemu/build/qemu-img            /out/
+
+# Runtime libs that qemu-system-x86_64 dlopen at runtime
+COPY --from=builder /src/qemu/build/pc-bios /out/pc-bios
+
+CMD ["/out/qemu-system-x86_64", "--version"]

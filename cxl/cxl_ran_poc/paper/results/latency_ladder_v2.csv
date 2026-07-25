@@ -1,0 +1,3 @@
+row,mean_us,p50_us,p95_us,p99_us,C_actual,N_CB,mean_slot_us,proj_c24_slot_us,notes
+baseline,11703.0,,,,24,N/A,11703.0,11703.0,FIXED PRIMARY_CONFIG anchor (do not re-measure)
+gpu_compute_full,200212690.619,225506281.319,291899452.639,307802568.766,2,3423,400425381.24,4805104574.9,backing=/tmp/cxl_standin.bin standin=1 bit_density=0.0000 active_rate=11.4 startup_s=8.02

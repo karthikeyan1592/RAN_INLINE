@@ -1,0 +1,6 @@
+env,numa_node,memory_type,p50_mbps,per_cb_us,per_slot_us,cbs_per_slot,emulation_mode,notes
+droplet_host_native,N/A,DRAM,18.9,487.6,11703,24,bare-metal-kvm-host,srsRAN BG1 LS=384 AVX2 I=20 R=1000 p50; DigitalOcean BLR1 Haswell; no QEMU
+qemu_vm_node0,0,DRAM,13.7,672.7,16145,24,qemu-kvm-cxl-pmem-hypervisor-bit-cleared-node0,numactl --membind=0 --cpunodebind=0; median of 3 runs (13.7 13.7 15.4 Mbps); R=2000
+qemu_vm_node1,1,CXL-pmem,12.7,725.7,17417,24,qemu-kvm-cxl-pmem-hypervisor-bit-cleared-node1-mbind-gte16kb,LD_PRELOAD mbind(>=16KB)=node1; median of 3 runs (12.3 12.7 15.1 Mbps); R=2000; numactl strict --membind=1 fails (see note)
+vm_kvm_overhead,0,DRAM,N/A,185.1,4442,24,qemu-kvm-overhead-vs-host,node0_median - host_native: 672.7-487.6=185.1 us/CB (1.38x slower); pure KVM virtualization cost
+cxl_vs_dram_qemu,N/A,emulated,N/A,0.0,0.0,24,qemu-no-latency-differentiation,node1_median(725.7) - node0_median(672.7) = 53 us/CB within run-to-run noise band (+-100 us); QEMU memory-backend-file does NOT emulate CXL latency -- both nodes backed by identical host DRAM

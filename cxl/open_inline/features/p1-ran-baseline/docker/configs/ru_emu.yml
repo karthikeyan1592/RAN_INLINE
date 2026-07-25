@@ -1,0 +1,47 @@
+# p1-ran-baseline — ru_emulator config (P1-R4). Real, grounded schema — NOT the flat top-level
+# `ru_emu: [...]` list this feature's own LLD assumed. Verified by reading
+# apps/examples/ofh/ru_emulator_appconfig.h (the real `ru_emulator_appconfig` struct: top-level
+# `log_cfg`/`ru_cfg`(vector)/`dpdk_config`(optional)) and ru_emulator_cli11_schema.cpp (the real
+# CLI11/YAML section names: subcommands `log`, `ru_emu` — with `ru_emu`'s per-instance cell config
+# passed through a `--cells` option of repeated sub-blocks). The real, working nested-list-of-maps
+# YAML shape for exactly this `--cells` mechanism is confirmed by a REAL upstream example that
+# uses the SAME create_yaml_config_parser()-based `--cells` pattern on the gNB side
+# (apps/units/flexible_o_du/split_7_2/helpers/ru_ofh_config_cli11_schema.cpp, whose own
+# `ru_ofh.cells:` list-of-maps syntax is exercised by third_party/ocudu/configs/
+# gnb_ru_picocom_scb_tdd_n78_20mhz.yml) — this file mirrors that same nested-list convention under
+# `ru_emu.cells` for the emulator side.
+#
+# Field names below (t2a_*, ul-only compr_method_ul/compr_bitwidth_ul, enable_promiscuous,
+# prach_format) are read directly off ru_emulator_cli11_schema.cpp's `configure_cli11_ru_emu_args`
+# — NOT the LLD's approximate `t1a_*`/`ul_compr_method` guesses, which don't match the real CLI11
+# option names (`--compr_method_ul`, not `--ul_compr_method`; the appconfig struct's OWN field is
+# named `ul_compr_method` but the YAML/CLI option key is `compr_method_ul`).
+#
+# NO `dpdk:` section — its absence is what selects the socket (AF_PACKET) transceiver (HLD D2;
+# `ru_emulator_cli11_schema.cpp`'s callback resets `dpdk_config` to empty whenever the `dpdk`
+# subcommand has zero entries).
+
+log:
+  filename: stdout
+  # level: warning, not info (2026-07-25, found on the GCP confirmation run) -- ru_emulator has a
+  # single flat log level (unlike gnb's per-category ngap_level/ofh_level split), and at `info` it
+  # logs every OFH frame it handles. Confirmed for real: this container's docker json-log file grew
+  # to 5.09GB in 26 minutes (~3.3MB/sec) at ~28K frames/sec sustained traffic, vs gnb's 425KB in the
+  # same window -- making `docker logs`/kpi_snapshot.sh calls against it multi-minute-slow and
+  # starving CPU the rest of the rig needs. `warning` matches the sane default already used
+  # elsewhere in this project (gnb's all_level/ofh_level) and still surfaces real problems.
+  level: warning
+
+ru_emu:
+  cells:
+    - network_interface: eth0   # container's (single-homed) fronthaul iface
+      ru_mac_addr: "02:6f:69:00:01:01"
+      du_mac_addr: "02:6f:69:00:01:02"
+      vlan_tag: 1
+      bandwidth: 20
+      compr_method_ul: bfp
+      compr_bitwidth_ul: 9
+      ul_port_id: [0]
+      dl_port_id: [0]
+      prach_port_id: [4]
+      enable_promiscuous: false

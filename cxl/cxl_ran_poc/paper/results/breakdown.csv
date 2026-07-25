@@ -1,0 +1,13 @@
+component,per_cb_us,per_slot_us,cbs_per_slot,notes
+baseline_ldpc_decode,487.6,11703,24,srsRAN BG1 LS=384 R=0.917 AVX2 I=20 p50; droplet host (DigitalOcean BLR1 Haswell)
+ebpf_uprobe_overhead,9.94,238.6,24,CONFIRMED: BPF-only=9943ns ftrace-only=9619ns; dominant cost=int3 trap+KVM VM-exit/entry (~8-9us); bare-metal ref=1.7us (Cloudflare); KVM adds 5.8x
+socket_per_connect_gap7,13.88,333.1,24,socket()+connect()+write()+close() per event (GAP-7 current impl); measured on droplet
+socket_persistent_fixed,~2.0,~48.0,24,send() on persistent socket (GAP-7 fix -- not yet implemented); estimated
+total_overhead_current,23.82,571.7,24,ebpf_uprobe + socket_per_connect (current GAP-7 impl)
+total_overhead_fixed,11.94,286.6,24,ebpf_uprobe + socket_persistent (after GAP-7 fix)
+sync_offload_per_cb,501.5,12036,24,baseline + total_overhead_current per CB (current impl; daemon runs same algorithm as CPU -- GAP-2)
+async_offload_ideal,487.6,11703,24,double-buffer: IPC hidden behind CPU decode of next CB; approaches baseline when daemon compute = CPU compute
+baseline_wsl2_corrected,1084.0,26016,24,WSL2 AVX2 single-thread (CORRECTED from 199.9); droplet is 2.22x faster than WSL2
+projected_gpu_compute,81.3,1951,24,11703/6; 6x GPU speedup over AVX2 CPU (arXiv:2602.04652 Six Times to Spare); PROJECTED not measured
+projected_gpu_offload_total,93.3,2238,24,1951 + 287 (eBPF+persistent-socket overhead after GAP-7 fix); PROJECTED; still 4.5x over 500us budget
+slot_budget,20.8,500,24,5G NR slot deadline (mu=1 30kHz SCS 0.5ms); spec TS 38.211

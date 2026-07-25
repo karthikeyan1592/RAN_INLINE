@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="608px" preserveAspectRatio="none" style="width:703px;height:608px;" version="1.1" viewBox="0 0 703 608" width="703px" zoomAndPan="magnify"><defs><filter height="300%" id="fd1gb8vbsz1we" width="300%" x="-1" y="-1"><feGaussianBlur result="blurOut" stdDeviation="2.0"/><feColorMatrix in="blurOut" result="blurOut2" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .4 0"/><feOffset dx="4.0" dy="4.0" in="blurOut2" result="blurOut3"/><feBlend in="SourceGraphic" in2="blurOut3" mode="normal"/></filter></defs><g><text fill="#000000" font-family="sans-serif" font-size="18" lengthAdjust="spacingAndGlyphs" textLength="652" x="28.5" y="16.708">Hardware staging (answers "GCP + AMD/Intel + live UE traffic" honestly)</text><!--MD5=[d0cae5ff9305becd6f502d4fe4f41481]
+entity S1--><rect fill="#FFF3CD" filter="url(#fd1gb8vbsz1we)" height="117.7813" style="stroke: #000000; stroke-width: 1.5;" width="339" x="6" y="28.9531"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="205" x="73" y="51.9482">STAGE 1 -- MECHANISM SPIKE</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="283" x="34" y="68.2451">Cheap bare-metal box: 1x ConnectX card</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="269" x="41" y="84.542">+ 1x GPU (any vendor), same PCIe root</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="319" x="16" y="100.8389">PROVE: dmabuf NIC-&gt;GPU VRAM ingest works</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="285" x="33" y="117.1357">(freeze-breaker: if not in &lt;=2wk, fall back</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="152" x="99.5" y="133.4326">to CPU-staged ingest)</text><!--MD5=[d3395af3100fe8cebf35265100c4415f]
+entity S2--><rect fill="#D1ECF1" filter="url(#fd1gb8vbsz1we)" height="101.4844" style="stroke: #000000; stroke-width: 1.5;" width="292" x="29.5" y="206.9531"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="216" x="67.5" y="229.9482">STAGE 2 -- PHY CORRECTNESS</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="249" x="51" y="246.2451">OAI FHI/xran synthetic eCPRI injector</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="221" x="65" y="262.542">(no RF hardware) -&gt; NIC -&gt; GPU</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="244" x="53.5" y="278.8389">full PHY (chan-est/eq/demap/LDPC)</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="272" x="39.5" y="295.1357">PROVE: bit-exact vs ground truth oracle</text><!--MD5=[6c7192638421eaf134d201765ac5db29]
+entity S3--><rect fill="#D4EDDA" filter="url(#fd1gb8vbsz1we)" height="101.4844" style="stroke: #000000; stroke-width: 1.5;" width="297" x="27" y="367.9531"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="277" x="37" y="390.9482">STAGE 3 -- MULTI-VENDOR PORTABILITY</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="243" x="54" y="407.2451">Repeat Stage 1+2 on GCP (NVIDIA)</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="201" x="75" y="423.542">and an AMD box/cloud (AMD)</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="237" x="57" y="439.8389">PROVE: same OpenCL/SYCL code,</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="92" x="129.5" y="456.1357">both vendors</text><!--MD5=[01b905ebe31ca24275b86a9951c478d0]
+entity S4--><rect fill="#E2E3E5" filter="url(#fd1gb8vbsz1we)" height="68.8906" style="stroke: #000000; stroke-width: 1.5;" width="302" x="24.5" y="528.9531"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="260" x="45.5" y="551.9482">STAGE 4 -- LIVE DEMO (optional, later)</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="282" x="34.5" y="568.2451">Swap synthetic injector for SDR loopback</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="151" x="100" y="584.542">or real UE + real O-RU</text><path d="M380,52.4531 L380,83.9531 L345.3,87.9531 L380,91.9531 L380,122.9844 A0,0 0 0 0 380,122.9844 L691,122.9844 A0,0 0 0 0 691,122.9844 L691,62.4531 L681,52.4531 L380,52.4531 A0,0 0 0 0 380,52.4531 " fill="#FBFB77" filter="url(#fd1gb8vbsz1we)" style="stroke: #A80036; stroke-width: 1.0;"/><path d="M681,52.4531 L681,62.4531 L691,62.4531 L681,52.4531 " fill="#FBFB77" style="stroke: #A80036; stroke-width: 1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="265" x="386" y="69.52">GCP A3-Ultra/A4 ConnectX-7 = candidate</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="267" x="386" y="84.6528">but UNVERIFIED for external-sender traffic</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="289" x="386" y="99.7856">(tuned for GPU-to-GPU NCCL fabric) + costly.</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="290" x="386" y="114.9185">Bare-metal is cheaper and more controllable.</text><path d="M362,535.9531 L362,559.4531 L326.57,563.4531 L362,567.4531 L362,591.3516 A0,0 0 0 0 362,591.3516 L689,591.3516 A0,0 0 0 0 689,591.3516 L689,545.9531 L679,535.9531 L362,535.9531 A0,0 0 0 0 362,535.9531 " fill="#FBFB77" filter="url(#fd1gb8vbsz1we)" style="stroke: #A80036; stroke-width: 1.0;"/><path d="M679,535.9531 L679,545.9531 L689,545.9531 L679,535.9531 " fill="#FBFB77" style="stroke: #A80036; stroke-width: 1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="276" x="368" y="553.02">"GCP + AMD/Intel + live traffic in ONE step"</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="306" x="368" y="568.1528">is NOT achievable -- GCP has no AMD/Intel GPU.</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="228" x="368" y="583.2856">This staged plan is the honest path.</text><!--MD5=[15cb110786dd224ca6a510a3d2a24e20]
+link S1 to S2--><path d="M175.5,147.0631 C175.5,164.7031 175.5,184.0231 175.5,201.4531 " fill="none" id="S1-&gt;S2" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="175.5,206.7931,179.5,197.7931,175.5,201.7931,171.5,197.7931,175.5,206.7931" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[8eac89d31ced3c9003fbd6a8a005c745]
+link S2 to S3--><path d="M175.5,308.3231 C175.5,325.4931 175.5,344.8131 175.5,362.3731 " fill="none" id="S2-&gt;S3" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="175.5,367.7531,179.5,358.7531,175.5,362.7531,171.5,358.7531,175.5,367.7531" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[82e284a09e4ebade00512bdc77bff32c]
+link S3 to S4--><path d="M175.5,469.0631 C175.5,486.9031 175.5,506.7531 175.5,523.5531 " fill="none" id="S3-&gt;S4" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="175.5,528.6531,179.5,519.6531,175.5,523.6531,171.5,519.6531,175.5,528.6531" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[76c07bf1f52e96436d02af3b633ac098]
+@startuml hw_staging
+title Hardware staging (answers "GCP + AMD/Intel + live UE traffic" honestly)
+skinparam defaultTextAlignment center
+skinparam rectangle {
+  BorderColor black
+  BackgroundColor #F7F7F7
+}
+
+rectangle "STAGE 1 - - MECHANISM SPIKE\nCheap bare-metal box: 1x ConnectX card\n+ 1x GPU (any vendor), same PCIe root\nPROVE: dmabuf NIC->GPU VRAM ingest works\n(freeze-breaker: if not in <=2wk, fall back\nto CPU-staged ingest)" as S1 #FFF3CD
+
+rectangle "STAGE 2 - - PHY CORRECTNESS\nOAI FHI/xran synthetic eCPRI injector\n(no RF hardware) -> NIC -> GPU\nfull PHY (chan-est/eq/demap/LDPC)\nPROVE: bit-exact vs ground truth oracle" as S2 #D1ECF1
+
+rectangle "STAGE 3 - - MULTI-VENDOR PORTABILITY\nRepeat Stage 1+2 on GCP (NVIDIA)\nand an AMD box/cloud (AMD)\nPROVE: same OpenCL/SYCL code,\nboth vendors" as S3 #D4EDDA
+
+rectangle "STAGE 4 - - LIVE DEMO (optional, later)\nSwap synthetic injector for SDR loopback\nor real UE + real O-RU" as S4 #E2E3E5
+
+S1 - -> S2
+S2 - -> S3
+S3 - -> S4
+
+note right of S1
+  GCP A3-Ultra/A4 ConnectX-7 = candidate
+  but UNVERIFIED for external-sender traffic
+  (tuned for GPU-to-GPU NCCL fabric) + costly.
+  Bare-metal is cheaper and more controllable.
+end note
+note right of S4
+  "GCP + AMD/Intel + live traffic in ONE step"
+  is NOT achievable - - GCP has no AMD/Intel GPU.
+  This staged plan is the honest path.
+end note
+@enduml
+
+PlantUML version 1.2020.02(Sun Mar 01 10:22:07 UTC 2020)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Java Version: 21.0.11+10-1-24.04.2-Ubuntu
+Operating System: Linux
+Default Encoding: UTF-8
+Language: en
+Country: null
+--></g></svg>

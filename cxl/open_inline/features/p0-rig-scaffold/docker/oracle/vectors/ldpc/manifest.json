@@ -1,0 +1,11 @@
+{
+  "kernel": "ldpc",
+  "note": "example_case_01 is a synthetic fixture for exercising the oracle-verdict CLI mechanism itself (P0-R5's own test plan: PASS on known-good, FAIL on 1-bit-flipped copy, exit 2 on missing case). It is NOT a real 5G NR LDPC vector and is unrelated to bit_diff_test.cpp's own internal, self-generated test cases (P0-R6), which use OCUDU's LDPC encoder directly and are not file-based.",
+  "cases": [
+    {
+      "id": "example_case_01",
+      "files": ["input.bin", "expected.bin", "params.json"],
+      "compare": "bit_exact"
+    }
+  ]
+}

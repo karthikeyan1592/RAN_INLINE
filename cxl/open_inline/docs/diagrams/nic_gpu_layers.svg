@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="1003px" preserveAspectRatio="none" style="width:789px;height:1003px;" version="1.1" viewBox="0 0 789 1003" width="789px" zoomAndPan="magnify"><defs><filter height="300%" id="f1x860gor2ivjs" width="300%" x="-1" y="-1"><feGaussianBlur result="blurOut" stdDeviation="2.0"/><feColorMatrix in="blurOut" result="blurOut2" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .4 0"/><feOffset dx="4.0" dy="4.0" in="blurOut2" result="blurOut3"/><feBlend in="SourceGraphic" in2="blurOut3" mode="normal"/></filter></defs><g><text fill="#000000" font-family="sans-serif" font-size="18" lengthAdjust="spacingAndGlyphs" textLength="775" x="2" y="16.708">The open NIC -&gt; GPU mechanism (corrected: mlx5 is hardware choice, not SW lock-in)</text><!--MD5=[769f808af18dc41ae3926100e72323f0]
+entity L1--><rect fill="#D4EDDA" filter="url(#f1x860gor2ivjs)" height="52.5938" style="stroke: #000000; stroke-width: 1.5;" width="171" x="181.5" y="28.9531"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="142" x="191.5" y="51.9482">ConnectX NIC silicon</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="151" x="191.5" y="68.2451">(hardware only, buy it)</text><!--MD5=[5fa073e7557ceedd5ffab818dd99475f]
+entity L2--><rect fill="#D4EDDA" filter="url(#f1x860gor2ivjs)" height="68.8906" style="stroke: #000000; stroke-width: 1.5;" width="170" x="182" y="142.9531"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="134" x="192" y="165.9482">mlx5_core / mlx5_ib</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="150" x="192" y="182.2451">kernel drivers -- OPEN</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="115" x="192" y="198.542">(upstream Linux)</text><!--MD5=[cdde8203267486659c77309d7f77d4ce]
+entity L3--><rect fill="#D4EDDA" filter="url(#f1x860gor2ivjs)" height="52.5938" style="stroke: #000000; stroke-width: 1.5;" width="208" x="163" y="272.9531"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="188" x="173" y="295.9482">DMA-BUF kernel framework</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="148" x="173" y="312.2451">OPEN, vendor-neutral</text><!--MD5=[6028a18b9c459cd39f6b03b8fed084fc]
+entity L4--><rect fill="#D4EDDA" filter="url(#f1x860gor2ivjs)" height="68.8906" style="stroke: #000000; stroke-width: 1.5;" width="185" x="174.5" y="386.9531"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="156" x="184.5" y="409.9482">rdma-core + libibverbs</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="165" x="184.5" y="426.2451">+ mlx5 provider -- OPEN</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="157" x="184.5" y="442.542">(linux-rdma/rdma-core)</text><!--MD5=[16f0e411f887cdceddc4d0567ce69ff7]
+entity L5--><rect fill="#D4EDDA" filter="url(#f1x860gor2ivjs)" height="52.5938" style="stroke: #000000; stroke-width: 1.5;" width="246" x="144" y="517.9531"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="143" x="154" y="540.9482">ibv_reg_dmabuf_mr()</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="226" x="154" y="557.2451">OPEN verb -- does the actual pull</text><!--MD5=[73db4ffefb788c254a76358e9722dc73]
+entity L6--><rect fill="#D4EDDA" filter="url(#f1x860gor2ivjs)" height="36.2969" style="stroke: #000000; stroke-width: 1.5;" width="233" x="150.5" y="632.9531"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="213" x="160.5" y="655.9482">DPDK mlx5 PMD -- OPEN (BSD)</text><!--MD5=[1ec033f08b0b8397c544e80a830c976e]
+entity L7--><rect fill="#D4EDDA" filter="url(#f1x860gor2ivjs)" height="68.8906" style="stroke: #000000; stroke-width: 1.5;" width="270" x="132" y="729.9531"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="134" x="142" y="752.9482">GPU dmabuf export</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="250" x="142" y="769.2451">(hsa_amd_portable_export_dmabuf /</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="147" x="142" y="785.542">CUDA equiv.) -- OPEN</text><!--MD5=[700b4b93fa7eadb43c7058c1ad924d59]
+entity L8--><rect fill="#F8D7DA" filter="url(#f1x860gor2ivjs)" height="101.4844" style="stroke: #000000; stroke-width: 1.5;" width="260" x="137" y="890.9531"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="169" x="147" y="913.9482">DOCA GPUNetIO / GDAKI</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="201" x="147" y="930.2451">(GPU rings NIC doorbell itself)</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="159" x="147" y="946.542">Historically NVIDIA-only;</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="187" x="147" y="962.8389">new limited open release --</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="240" x="147" y="979.1357">UNVERIFIED, NOT REQUIRED for us</text><path d="M425.5,516.9531 L425.5,540.4531 L390.02,544.4531 L425.5,548.4531 L425.5,572.3516 A0,0 0 0 0 425.5,572.3516 L634.5,572.3516 A0,0 0 0 0 634.5,572.3516 L634.5,526.9531 L624.5,516.9531 L425.5,516.9531 A0,0 0 0 0 425.5,516.9531 " fill="#FBFB77" filter="url(#f1x860gor2ivjs)" style="stroke: #A80036; stroke-width: 1.0;"/><path d="M624.5,516.9531 L624.5,526.9531 L634.5,526.9531 L624.5,516.9531 " fill="#FBFB77" style="stroke: #A80036; stroke-width: 1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="188" x="431.5" y="534.02">This is the layer that matters:</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="173" x="431.5" y="549.1528">packets land in GPU VRAM,</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="180" x="431.5" y="564.2856">CPU never touches payload.</text><!--MD5=[78071b9655e1d2df655a482f57934b02]
+link L1 to L2--><path d="M267,82.1931 C267,98.3131 267,119.3831 267,137.5131 " fill="none" id="L1-&gt;L2" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="267,142.5431,271,133.5431,267,137.5431,263,133.5431,267,142.5431" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[cd884ebc2a9a3d05fe1796a968a3920c]
+link L2 to L3--><path d="M267,212.2031 C267,229.6631 267,250.8231 267,267.8131 " fill="none" id="L2-&gt;L3" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="267,272.9431,271,263.9431,267,267.9431,263,263.9431,267,272.9431" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[632b61f887e8f18515b53c192df74512]
+link L3 to L4--><path d="M267,326.1931 C267,342.3131 267,363.3831 267,381.5131 " fill="none" id="L3-&gt;L4" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="267,386.5431,271,377.5431,267,381.5431,263,377.5431,267,386.5431" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[cb6813db87acf1d8edf63aac808d1bf5]
+link L4 to L5--><path d="M267,456.1631 C267,473.7731 267,495.1931 267,512.4031 " fill="none" id="L4-&gt;L5" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="267,517.6031,271,508.6031,267,512.6031,263,508.6031,267,517.6031" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[e61bd23a492d316269a2ba626031e08f]
+link L5 to L6--><path d="M267,571.0131 C267,588.2831 267,610.8531 267,627.4431 " fill="none" id="L5-&gt;L6" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="267,632.8231,271,623.8231,267,627.8231,263,623.8231,267,632.8231" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[d407c71aaf2e1d4d52d715a57965b8e5]
+link L6 to L7--><path d="M267,669.3731 C267,684.0431 267,705.5731 267,724.3331 " fill="none" id="L6-&gt;L7" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="267,729.5431,271,720.5431,267,724.5431,263,720.5431,267,729.5431" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[b7a170d3b4a62c7d7a6508aad02a8c49]
+link L7 to L8--><path d="M267,799.1931 C267,823.6931 267,857.3731 267,885.6931 " fill="none" id="L7-&gt;L8" style="stroke: #F8D7DA; stroke-width: 1.0;"/><polygon fill="#F8D7DA" points="267,890.9231,271,881.9231,267,885.9231,263,881.9231,267,890.9231" style="stroke: #F8D7DA; stroke-width: 1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="125" x="268" y="842.02">optional, not on our</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="74" x="293.5" y="857.1528">critical path</text><!--MD5=[8cc81e704af0f628767e035ab5e773d8]
+@startuml nic_gpu_layers
+title The open NIC -> GPU mechanism (corrected: mlx5 is hardware choice, not SW lock-in)
+skinparam rectangle {
+  BackgroundColor #F7F7F7
+}
+rectangle "ConnectX NIC silicon\n(hardware only, buy it)" as L1 #D4EDDA
+rectangle "mlx5_core / mlx5_ib\nkernel drivers - - OPEN\n(upstream Linux)" as L2 #D4EDDA
+rectangle "DMA-BUF kernel framework\nOPEN, vendor-neutral" as L3 #D4EDDA
+rectangle "rdma-core + libibverbs\n+ mlx5 provider - - OPEN\n(linux-rdma/rdma-core)" as L4 #D4EDDA
+rectangle "ibv_reg_dmabuf_mr()\nOPEN verb - - does the actual pull" as L5 #D4EDDA
+rectangle "DPDK mlx5 PMD - - OPEN (BSD)" as L6 #D4EDDA
+rectangle "GPU dmabuf export\n(hsa_amd_portable_export_dmabuf /\nCUDA equiv.) - - OPEN" as L7 #D4EDDA
+rectangle "DOCA GPUNetIO / GDAKI\n(GPU rings NIC doorbell itself)\nHistorically NVIDIA-only;\nnew limited open release - -\nUNVERIFIED, NOT REQUIRED for us" as L8 #F8D7DA
+
+L1 - -> L2
+L2 - -> L3
+L3 - -> L4
+L4 - -> L5
+L5 - -> L6
+L6 - -> L7
+L7 -[#F8D7DA]-> L8 : optional, not on our\ncritical path
+
+note right of L5
+  This is the layer that matters:
+  packets land in GPU VRAM,
+  CPU never touches payload.
+end note
+@enduml
+
+PlantUML version 1.2020.02(Sun Mar 01 10:22:07 UTC 2020)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Java Version: 21.0.11+10-1-24.04.2-Ubuntu
+Operating System: Linux
+Default Encoding: UTF-8
+Language: en
+Country: null
+--></g></svg>

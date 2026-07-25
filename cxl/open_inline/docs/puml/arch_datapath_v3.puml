@@ -1,0 +1,41 @@
+@startuml arch_datapath_v3
+title Open Inline v3 — Complete L1 on GPU (uplink), no CXL
+skinparam componentStyle rectangle
+
+actor "UE" as UE
+node "O-RU\n(SDR or OAI FHI/xran software O-RU)" as RU
+cloud "Fronthaul\neCPRI/UDP over Ethernet\n(split 7.2x: RU does FFT)" as FH
+
+node "NIC (Mellanox ConnectX, mlx5)" as NIC #D4EDDA
+node "GPU (NVIDIA / AMD / Intel)" {
+  [eCPRI depacketize +\nRE-grid reassembly] as DEPKT
+  [chan-est] as CE
+  [equalize] as EQ
+  [demap -> LLR] as DM
+  [LDPC decode\n(bit-exact kernel)] as LD
+  DEPKT --> CE
+  CE --> EQ
+  EQ --> DM
+  DM --> LD
+}
+node "CPU" {
+  [CRC24] as CRC
+  [PHY<->L2 seam\n(custom IPC now,\nFAPI-style later)] as SEAM
+  [MAC/RLC/PDCP] as L2
+  CRC --> SEAM
+  SEAM --> L2
+}
+
+UE --> RU : RF
+RU --> FH : freq-domain REs
+FH --> NIC
+NIC ==> DEPKT : ibv_reg_dmabuf_mr()\n(OPEN, no NVIDIA SW needed)\nNIC DMAs into GPU VRAM
+LD --> CRC : decoded TB bits\n(standard pinned-memory copy,\nNOT CXL)
+
+note bottom of NIC
+  Data plane: 100% open
+  (mlx5_core + DMA-BUF + rdma-core)
+  Control plane: CPU posts receives
+  (open rdma-core/DPDK; GDAKI NOT needed)
+end note
+@enduml

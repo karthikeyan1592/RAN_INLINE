@@ -1,0 +1,5 @@
+bg,ls,ls_idx,n_iter,n_messages,n_bits,n_mismatches,bit_diff_rate,status
+1,384,1,6,500,4224000,0,0.000000,PASS
+2,384,1,6,500,1920000,0,0.000000,PASS
+1,256,0,6,500,2816000,0,0.000000,PASS
+2,256,0,6,500,1280000,0,0.000000,PASS

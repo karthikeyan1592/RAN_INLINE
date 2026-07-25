@@ -1,0 +1,2 @@
+env,numa_node,memory_type,p50_mbps,per_cb_us,per_slot_us,cbs_per_slot,emulation_mode,notes
+droplet_host_native,N/A,DRAM,18.9,487.6,11703,24,bare-metal-kvm-host,srsRAN BG1 LS=384 AVX2 I=20 R=1000 p50; DigitalOcean BLR1 Haswell; no QEMU

@@ -1,0 +1,5 @@
+UE RNTI 1234 CU-UE-ID 1 in-sync PH 58 dB PCMAX 20 dBm, average RSRP -43 (51 meas)
+UE 1234: dlsch_rounds 55250/49/49/49, dlsch_errors 49, pucch0_DTX 196 (SNR 15.0+0.0 dB), BLER 0.10000 MCS (0) 9 CCE fail 0, goodput 0.00 Mbps
+UE 1234: ulsch_rounds 55250/49/49/49, ulsch_errors 49, ulsch_DTX 196, BLER 0.10000 MCS (0) 9 (Qm 2 deltaMCS 0 dB) NPRB 50 SNR 21.0 (+1.0) dB CCE fail 0, goodput 0.00 Mbps
+UE 1234: LCID 4: TX            260 RX            312 bytes
+

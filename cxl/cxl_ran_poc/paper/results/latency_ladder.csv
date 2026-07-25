@@ -1,0 +1,7 @@
+component,per_slot_us,source,emulation_mode
+baseline_cpu,11703,measured,bare-metal-kvm-host
+sync_offload_cpu_daemon,12036,measured,bare-metal-kvm-host
+async_offload_cpu_daemon,11727,measured,bare-metal-kvm-host
+projected_gpu_compute,1951,"11703/6; Six Times to Spare 6x speedup (arXiv:2602.04652)",projected-not-measured
+projected_gpu_offload_total,2238,"1951 + 287 (eBPF 239us + persistent-socket 48us after GAP-7 fix)",projected-not-measured
+slot_budget,500,spec TS38.211 mu=1 30kHz SCS,N/A

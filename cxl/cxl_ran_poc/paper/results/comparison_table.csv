@@ -1,0 +1,12 @@
+source,value_us,value_ns,what_it_measures,source_label,note
+This work — baseline (PRIMARY),11703,,CPU gNB slot processing time (no offload),measured,23.4x over 500us budget; TS38.212-derived anchor (srsRAN ldpc_decoder_benchmark); do not re-measure
+This work — +gpu_compute_full (CPU OpenCL),163527.8,,Full pipeline end-to-end: overhead_ns = consumer_ts_ns − probe_ts_ns (interception + LLR copy + OCL); C=2 CBs/slot,measured,bit-exact (Phase 1 kernel); OCL device = CPU (PoCL/WSL2 no GPU; see DEV-014); 327x over 500us budget; source: ablation_raw.csv pass=1 overhead_ns
+This work — +gpu_compute_full OCL-only component,149548.2,,ocl_ns pure OpenCL wall-clock only (clEnqueueNDRange → clFinish); NOT the end-to-end pipeline time,measured,source: ablation_raw.csv pass=1 ocl_ns column; 299x over 500us; separated from overhead_ns for GPU projection use
+This work — +gpu_compute_full (projected: real GPU),27560.7,,Projected assuming 6x GPU compute speedup per Six Times to Spare,projected,formula: interception_overhead_us + ocl_us/6 = 2636 + 149548/6 = 27561 us/slot; 55.1x over 500us; NOT re-measured
+This work — interception overhead (per CB),,1318008,bpftime uprobe fire → consumer reads LLR (no compute),measured,mean=1318008 ns; p50=949843 ns; N=1000 CBs; dominated by 2ms poll interval (DEV-014); actual bpftime round-trip ~248.5ns (Gate 0.1)
+This work — interception overhead (Gate 0.1 baseline),,248.5,bpftime uprobe baseline round-trip (single synthetic probe),measured,from Gate 0.1 micro-benchmark; no LLR copy; this is the floor
+This work — CXLMemSim sweep,,,,injected CXL latency 0/100/142/200/255/300 ns,deferred,Phase 4 Gate 0.3 FAIL — WSL2 no PMU (DEV-005); would add 0-600 ns/CB to measured rows
+Six Times to Spare (DGX Spark),,710000,GPU LDPC compute per slot (C=24; full TB),cited_prior,from arXiv:2303.XXXXX; 710us/slot at MCS29 106PRB; ~6x speedup vs CPU LDPC
+Cloudflare (eBPF uprobe),,1670,Bare-metal uprobe round-trip latency,cited_prior,Cloudflare blog; kernel eBPF; per-event; no LLR copy
+Pond (real cross-socket NUMA),,80,CXL proxy delta (real cross-socket memory),cited_prior,Pond paper; 70-90 ns range; actual CXL memory access delta
+Real CXL Type-3 (Intel MLC / HEIMDALL),,304,Load-to-use CXL memory latency,cited_prior,214-394 ns range; mid-point 304 ns; arXiv CXL benchmark papers

@@ -1,0 +1,26 @@
+@startuml phy_l2_seam
+title PHY<->L2 seam: retired BBDev PMD vs the new full-PHY seam
+skinparam componentStyle rectangle
+
+package "v1/v2 (retired) -- LDPC lookaside only" #F8D7DA {
+  [OAI CPU: owns entire PHY] as OAIv2
+  [O-RAN AAL / DPDK-BBDev\n(FEC-lookaside-only interface)] as AAL
+  [GPU: LDPC decode ONLY] as GPUv2
+  OAIv2 --> AAL
+  AAL --> GPUv2
+}
+
+package "v3 Phase 1 (current) -- GPU owns entire PHY" #D4EDDA {
+  [GPU-resident PHY process\n(entire DU L1)] as GPUv3
+  [PHY<->L2 seam\nsimple custom IPC now;\nFAPI-style (SCF FAPI) later\nif production interop needed] as SEAMv3
+  [CPU: L2+ only\n(MAC/RLC/PDCP)] as CPUv3
+  GPUv3 --> SEAMv3
+  SEAMv3 --> CPUv3
+}
+
+note bottom of AAL
+  AAL/BBDev doesn't apply anymore --
+  it's FEC-only. GPU now owns the
+  WHOLE PHY, needs a bigger interface.
+end note
+@enduml
