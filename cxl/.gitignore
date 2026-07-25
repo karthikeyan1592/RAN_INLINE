@@ -1,0 +1,4 @@
+# Third-party upstream clones -- real remotes exist for each, not vendored into this repo.
+# Re-fetch with: git clone <remote-url> third_party/<name>
+# (see each project's own README/deploy scripts for the exact pinned tag/commit used.)
+third_party/
