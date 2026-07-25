@@ -140,21 +140,58 @@ See [`README.md`](README.md) for scope. This file records what was actually buil
    including the 2026-07-23 `oi_p2_write_arena` addition -- P2-R17 protects existing callers from a
    signature change after they depend on it, it does not forbid additive new calls before anyone
    does (same reasoning as the `mcs_index` addition).
-9. **Class-a (P1-captured) gate is skipped, not failed**: `p1-ran-baseline` has no implementation
-   yet (`STATUS.md`: `spec_only`), so no real captured pcap corpus exists. `pipeline_test.py` checks
-   for a captures directory and prints an explicit `SKIP` with the reason rather than silently
-   omitting the check or fabricating a pass -- matches this project's "no silent gaps" discipline,
-   and the deferral was already anticipated in `README.md`'s "Note on p1 dependency".
+9. **Class-a (P1-captured) gate: skipped-not-failed at the time this item was first written, now
+   RUNS FOR REAL** (2026-07-25) — see the "Class-a P1-captured gate: run for real" section above
+   for the full path-fix + scope-fix story once `p1-ran-baseline` actually produced a corpus.
+   `pipeline_test.py`'s `SKIP`-with-reason behavior (rather than silently omitting the check or
+   fabricating a pass) was correct discipline while the corpus genuinely didn't exist yet, and the
+   deferral was already anticipated in `README.md`'s "Note on p1 dependency" — this item is now
+   closed, not still open.
 
-**Result**: `pipeline_test.py` -- 21/21 assertions pass (7 per MCS point x 3 MCS points, plus 2
-P2-R17 surface checks), covering real CRC24A pass + bit-exact TB recovery end-to-end for all three
-MVP MCS points. Full p2 re-verification sweep after this work (`lint_no_perf.sh`,
-`lint_portability.py`, `provenance_check.py`, and every p2a-p2f test suite) re-run clean.
+**Result**: `pipeline_test.py` -- 27/27 assertions pass (7 per MCS point x 3 MCS points + 2 P2-R17
+surface checks + 6 class-a structural checks across 3 real P1-captured pcap fragments), covering
+real CRC24A pass + bit-exact TB recovery end-to-end for all three MVP MCS points (class-b) AND a
+real, structural, no-ground-truth run against actual GCP-captured live-rig traffic (class-a). Full
+p2 re-verification sweep after this work (`lint_no_perf.sh`, `lint_portability.py`,
+`provenance_check.py`, and every p2a-p2f test suite) re-run clean.
+
+## Class-a P1-captured gate: run for real (2026-07-25)
+
+p1-ran-baseline reached a fully green P1-G1/P1-G2 deploy on GCP and archived a real corpus
+(`artifacts/p1/pcaps/<run-id>/`), closing the "skipped, no real data yet" gap this file's Known-
+open items previously listed. Running the class-a gate against that real corpus for the first
+time surfaced two real path/scope mismatches — same genus as the earlier `oi_p2_feed`/VLAN
+findings, caught the same way (running the consumer against the producer's real output), not a
+correctness bug in either side:
+
+1. **Path mismatch**: `pipeline_test.py`'s `P1_PCAP_DIR` pointed at
+   `p1-ran-baseline/captures/` — a location `archive_pcap.sh` never actually writes to. Two
+   sessions independently picked reasonable-sounding paths and nobody reconciled them until this
+   gate was actually run. Fixed: repointed at `artifacts/p1/pcaps/<latest-run-id>/` (the real,
+   manifest-carrying corpus root), picking the lexically-latest run-id subdirectory (== most
+   recent chronologically, since run-ids are UTC timestamps) rather than accumulating every
+   historical run. Also fixed to pick up every rotated pcap fragment (`fronthaul.pcap`,
+   `fronthaul.pcap1`, `fronthaul.pcap2`, ...) instead of only files literally ending in `.pcap`.
+2. **Scope mismatch, real fix in `pipeline_runner.cpp`**: `oi_p2_write_arena` failed with
+   `OI_P2_ERR_ARENA_OVERFLOW` on the real corpus — NOT an arena-sizing bug (the bounds check
+   itself is correct), but the frame-feed loop was already implicitly single-slot (it reads
+   `slot_id` from the first frame and never re-checks it) while never actually stopping at a slot
+   boundary. Class-b's oracle fixtures are single-transmission (14 frames), so this was never
+   exercised; P1's real corpus is a raw 30-second, multi-slot, 850K-frame capture of an entire rig
+   session, which just kept accumulating into the arena until the overflow guard tripped.
+   Slot-boundary demuxing across a live multi-slot stream is p3's job (live-tap-ul-inject), not
+   this MVP tool's — fixed by bounding the feed to the first `slot_id` observed, making the
+   loop's existing implicit assumption explicit instead of overflowing.
+
+**Real result after both fixes**, against run `20260725T180323Z` (3 rotated fragments):
+all 6 checks PASS (`pipeline runs to completion` + `I2-I5 taps readable`, per fragment) — no
+CRC/TB assertion, per DEV-044 (ru_emulator's static IQ has no ground truth; this is a pre-p3 rig,
+so that's the correct, by-design scope for class-a, not a gap). Full `pipeline_test.py` suite
+(class-a + class-b + P2-R17) re-run end to end: `pipeline_test: ALL PASS`, exit 0. `lint_no_perf.sh`
+re-run clean.
 
 ## Known-open items (not addressed this pass)
 
 - **p3/p6 push-vs-pull ingest control-flow inversion**: still flagged, still not resolved (same
   status carried forward from p2c-k1/p2a-scaffold).
 - **Ethernet-layer wire assumption (Q2)**: still open, unaffected by this slice's work.
-- **Class-a P1-captured structural gate**: implemented in `pipeline_test.py` but untested against
-  real data (skipped, see item 9 above) until `p1-ran-baseline` produces a real pcap corpus.

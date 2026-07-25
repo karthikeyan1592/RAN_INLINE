@@ -21,7 +21,7 @@ and verified against a real oracle/real build, not just written.
     {"id": "p2c-k1", "status": "done"},
     {"id": "p2d-k2-k3", "status": "done"},
     {"id": "p2e-k4", "status": "done"},
-    {"id": "p2f-integration", "status": "done", "note": "LDPC hookup + CB segmentation + real pipeline wiring + oracle TX generator + pipeline_test.py all done, real CRC pass + TB bit-exact end-to-end for all 3 MVP MCS points"},
+    {"id": "p2f-integration", "status": "done", "note": "LDPC hookup + CB segmentation + real pipeline wiring + oracle TX generator + pipeline_test.py all done, real CRC pass + TB bit-exact end-to-end for all 3 MVP MCS points; class-a structural gate now also run for real against p1's live-captured corpus (2026-07-25), 27/27 assertions PASS"},
     {"id": "p3-live-tap-ul-inject", "status": "spec_only"},
     {"id": "p4-phy-l2-seam", "status": "spec_only"},
     {"id": "p5-one-command-rig", "status": "spec_only"},
@@ -77,7 +77,7 @@ and verified against a real oracle/real build, not just written.
                    "tests/classifier_test.sh", "tests/ci_p1_static.sh", "Makefile"],
   "implementation_started": true,
   "blocks": [],
-  "unblocks": ["p2f-integration's class-(a) structural pcap gate — a real pcap corpus now exists at artifacts/p1/pcaps/20260725T180323Z/ (840,783 frames), no longer skipped for lack of data; re-running that gate against it is p2f-integration's own follow-up, not done as part of this session"],
+  "unblocks": ["p2f-integration's class-(a) structural pcap gate — DONE (2026-07-25): re-run for real against the corpus at artifacts/p1/pcaps/20260725T180323Z/, see p2f-integration's done_2026_07_25_class_a entry"],
   "done_2026_07_24": [
     "compose.p1.yml: 3rd compose layer, real docker compose config render verified — gnb additively gains networks.fronthaul only, 5gc byte-identical, ru-emu/5gc network membership correct (P1-R1/R2/R3, tests/ci_p1_static.sh)",
     "ru-emu reuses ocudu/gnb's own image (no separate build) — real finding: no COMPONENT=ru-emulator build arg exists in the monolithic Dockerfile, it always builds ru_emulator too",
@@ -323,12 +323,14 @@ and verified against a real oracle/real build, not just written.
     "tools/oracle_tx_gen.cpp: real OCUDU TX chain (segment/LDPC-encode/rate-match/scramble/modulate, PDSCH's real TX chain consulted read-only since OCUDU has no PUSCH encoder) + real eCPRI/O-RAN wire frames + JSON ground-truth sidecar, self-verified via real-decoder round-trip for all 3 MVP MCS points",
     "real finding + fix: 64-QAM's peak constellation amplitude (~1.08) got silently clipped by the real wire codec's implicit unit full-scale assumption — fixed with a 0.9 TX amplitude scale in the oracle only (no pipeline-side change needed, equalizer is blind to a common data/DMRS gain)",
     "tools/pipeline_runner.cpp: feeds a pcap through the real oi_p2_host pipeline exactly as a production ingest_backend would (preparse -> write_arena -> feed -> launch_slot -> drain -> tap), emits a JSON TB record",
-    "helpers/pcap_packer.py + tests/integration/pipeline_test.py: P2-R15's class-b (oracle-packed) gate — CRC24A pass + TB bit-exact vs the oracle's own known TB, verified for real across all 3 MVP MCS points (C=1/2/4, QPSK/16QAM/64QAM); class-a (P1-captured) implemented but SKIPPED pending p1-ran-baseline's real pcap corpus; P2-R17 API-surface check implemented as a grep-based substitute (p3/p4 don't exist yet to literally test against)",
+    "helpers/pcap_packer.py + tests/integration/pipeline_test.py: P2-R15's class-b (oracle-packed) gate — CRC24A pass + TB bit-exact vs the oracle's own known TB, verified for real across all 3 MVP MCS points (C=1/2/4, QPSK/16QAM/64QAM); class-a (P1-captured) implemented, at the time SKIPPED pending p1-ran-baseline's real pcap corpus (see done_2026_07_25_class_a below — no longer skipped); P2-R17 API-surface check implemented as a grep-based substitute (p3/p4 don't exist yet to literally test against)",
     "pipeline_test.py: 21/21 assertions PASS; full p2 re-verification sweep (lint_no_perf, lint_portability, provenance_check, every p2a-p2f test suite) re-run clean"
+  ],
+  "done_2026_07_25_class_a": [
+    "class-a (P1-captured) gate run for real for the first time, against p1-ran-baseline's real GCP-archived corpus (840,783 frames). Found + fixed 2 real path/scope mismatches: (1) pipeline_test.py's P1_PCAP_DIR pointed at p1-ran-baseline/captures/, a location archive_pcap.sh never writes to -- repointed at the real corpus root artifacts/p1/pcaps/<latest-run-id>/, also fixed to pick up all rotated pcap fragments (fronthaul.pcap, .pcap1, .pcap2, ...) not just literal .pcap-suffixed files; (2) pipeline_runner.cpp's frame-feed loop was implicitly single-slot (reads slot_id from the first frame, never re-checks it) but never stopped at a slot boundary -- a real 30s/850K-frame multi-slot capture just overflowed the arena (OI_P2_ERR_ARENA_OVERFLOW), not an arena-sizing bug. Fixed by bounding the feed to the first slot_id observed (slot demuxing across a live stream is p3's job, not this MVP tool's). Real result: all 6 checks PASS across 3 pcap fragments (pipeline completes + I2-I5 taps readable, no CRC/TB assertion per DEV-044). Full suite re-run: pipeline_test: ALL PASS, 27/27 assertions, exit 0. lint_no_perf.sh re-run clean."
   ],
   "not_started": [],
   "known_gaps_deferred": [
-    "class-a (P1-captured) structural gate is implemented in pipeline_test.py but untested against real data — skipped until p1-ran-baseline produces a real pcap corpus",
     "P2-R1's original 'independent prefix build' design (K1-only, K1-K2, ...) no longer applies now that all 7 kernels wire into one oi_p2_setup call — pipeline_test.py checks the OBSERVABLE contract (I2-I5 taps independently readable) instead, a disclosed scope evolution, not a silent gap"
   ]
 }

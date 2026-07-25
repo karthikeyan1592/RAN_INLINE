@@ -52,6 +52,11 @@ still be fully implemented and gated — class-(a) is a structural-only, no-grou
 can be added once p1's pcaps are available, per the earlier finding that p2's core correctness work
 doesn't block on p1.
 
+**RESOLVED (2026-07-25)**: p1-ran-baseline reached a fully green deploy and archived a real corpus;
+class-(a) now runs for real against it (2 real path/scope bugs found + fixed in the process — see
+`VERIFICATION.md`'s "Class-a P1-captured gate: run for real" section for the full story). This
+note is kept for the historical reasoning, not as a current-state description.
+
 ## Design decisions (recorded ahead of implementation, 2026-07-23)
 
 Two calls made for this slice, captured here now so the reasoning survives even though the code

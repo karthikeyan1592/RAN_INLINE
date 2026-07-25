@@ -11,9 +11,10 @@ pipeline_runner itself is judgment-free (it just runs the chain and reports what
 Two pcap classes per P2-R15:
   (a) P1-captured -- protocol-real, data-synthetic (ru_emulator static IQ, DEV-044: no TB ground
       truth exists for these). Gate: structural only (pipeline runs to completion, taps readable).
-      SKIPPED here: p1-ran-baseline has not been implemented yet (STATUS.md), so no P1-captured
-      corpus exists to test against -- this is the class-(a) gate's documented "add once p1's
-      pcaps exist" deferral (p2f-integration/README.md), not a silent omission.
+      RUNS FOR REAL as of 2026-07-25: p1-ran-baseline reached a fully green P1-G1/P1-G2 deploy on
+      GCP and archived a real corpus (see P1_PCAP_ROOT below) -- the class-(a) gate's documented
+      "add once p1's pcaps exist" deferral (p2f-integration/README.md) is now resolved. Only
+      SKIPPED (not failed) if no run-id subdirectory exists under artifacts/p1/pcaps/ yet.
   (b) oracle-packed -- pcap_packer.py (which itself wraps oracle_tx_gen.cpp, a real, self-
       verified OCUDU TX-chain oracle) builds a real, wire-valid transmission with a KNOWN ground
       truth TB. Gate: CRC24A pass + decoded TB bit-exact vs the packer's own oracle TB, for all
@@ -50,7 +51,14 @@ P2A_ROOT = os.path.abspath(os.path.join(FEATURE_ROOT, "..", "p2a-scaffold"))
 PIPELINE_RUNNER = os.path.join(FEATURE_ROOT, "build", "pipeline_runner")
 CONFIG_YAML = os.path.join(P2A_ROOT, "tests", "fixtures", "mvp_config.yaml")
 ORACLE_PCAP_DIR = os.path.join(FEATURE_ROOT, "tests", "fixtures", "oracle_pcaps")
-P1_PCAP_DIR = os.path.abspath(os.path.join(FEATURE_ROOT, "..", "p1-ran-baseline", "captures"))
+# 2026-07-25 real path fix: this used to point at p1-ran-baseline/captures/, a location
+# p1-ran-baseline's own tooling (archive_pcap.sh) never actually writes to -- two sessions each
+# picked a reasonable-sounding path independently and nobody reconciled them until this gate was
+# actually run against real P1 output. archive_pcap.sh's real, manifest-carrying corpus root is
+# artifacts/p1/pcaps/<run-id>/ (see p1-ran-baseline/VERIFICATION.md) -- pointing here instead of
+# duplicating captures into the feature tree (which would bloat it with hundreds of MB of binary
+# pcap data per run) matches how this project already treats generated artifacts elsewhere.
+P1_PCAP_ROOT = os.path.abspath(os.path.join(FEATURE_ROOT, "..", "..", "artifacts", "p1", "pcaps"))
 
 sys.path.insert(0, os.path.join(FEATURE_ROOT, "helpers"))
 from pcap_packer import pack as pack_oracle  # noqa: E402
@@ -109,24 +117,40 @@ def class_b_oracle_packed():
 
 
 def class_a_p1_captured():
-    """P2-R15's structural-only gate over P1-captured pcaps. Skipped (not failed): p1-ran-baseline
-    has no implementation yet (STATUS.md: spec_only), so there is no real captured corpus to test
-    against. This is the documented deferral from p2f-integration/README.md's "Note on p1
-    dependency", not a silently-skipped requirement."""
-    if not os.path.isdir(P1_PCAP_DIR) or not os.listdir(P1_PCAP_DIR):
-        print(f"SKIP: class-a P1-captured pcaps ({P1_PCAP_DIR} absent/empty -- "
-              f"p1-ran-baseline not yet implemented, see STATUS.md)")
+    """P2-R15's structural-only gate over P1-captured pcaps. Skipped (not failed) only if no real
+    P1 corpus exists yet under artifacts/p1/pcaps/ -- p1-ran-baseline is now implemented and has
+    produced a real corpus (2026-07-25, GCP confirmation run), so this normally runs for real.
+
+    Uses the LATEST run-id subdirectory (lexical sort == chronological, since archive_pcap.sh's
+    run-ids are UTC timestamps) rather than every historical run -- structural-only checks add no
+    value re-run against stale corpora, and this avoids O(runs) growth in test time as more P1
+    deploys accumulate archives over time.
+
+    Picks up every rotated pcap fragment (archive_pcap.sh's size-based -C rotation produces
+    `fronthaul.pcap`, `fronthaul.pcap1`, `fronthaul.pcap2`, ... for large captures -- see
+    p1-ran-baseline/VERIFICATION.md), not just files literally ending in `.pcap`; each fragment is
+    independently structurally valid and checked on its own, no reassembly needed for a
+    completes-and-taps-readable check."""
+    if not os.path.isdir(P1_PCAP_ROOT) or not os.listdir(P1_PCAP_ROOT):
+        print(f"SKIP: class-a P1-captured pcaps ({P1_PCAP_ROOT} absent/empty -- "
+              f"no P1 corpus archived yet, see p1-ran-baseline/VERIFICATION.md)")
         return
-    # Structural gate, once p1 pcaps exist: pipeline must run to completion and its taps must be
-    # readable; no CRC/TB assertion is made (DEV-044: ru_emulator's static IQ has no ground truth).
-    for fname in sorted(os.listdir(P1_PCAP_DIR)):
-        if not fname.endswith(".pcap"):
+    run_ids = sorted(d for d in os.listdir(P1_PCAP_ROOT) if os.path.isdir(os.path.join(P1_PCAP_ROOT, d)))
+    if not run_ids:
+        print(f"SKIP: class-a P1-captured pcaps ({P1_PCAP_ROOT} has no run-id subdirectories)")
+        return
+    run_dir = os.path.join(P1_PCAP_ROOT, run_ids[-1])
+    # Structural gate: pipeline must run to completion and its taps must be readable; no CRC/TB
+    # assertion is made (DEV-044: ru_emulator's static IQ has no ground truth -- this pre-p3 rig's
+    # corpus is protocol-real, data-synthetic by design, never a correctness oracle).
+    for fname in sorted(os.listdir(run_dir)):
+        if ".pcap" not in fname:
             continue
-        pcap_path = os.path.join(P1_PCAP_DIR, fname)
+        pcap_path = os.path.join(run_dir, fname)
         result = run_pipeline(pcap_path, mcs_index=4)  # MCS choice is arbitrary for structural-only
-        check(result is not None, f"class-a {fname}: pipeline runs to completion")
+        check(result is not None, f"class-a {run_ids[-1]}/{fname}: pipeline runs to completion")
         if result is not None:
-            check(result["taps_ok"], f"class-a {fname}: I2-I5 taps readable")
+            check(result["taps_ok"], f"class-a {run_ids[-1]}/{fname}: I2-I5 taps readable")
 
 
 def check_p2_r17_api_surface():

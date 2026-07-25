@@ -118,6 +118,19 @@ int main(int argc, char** argv) {
       nof_dropped++;
       continue;
     }
+    // One-slot bound (2026-07-25, found running class-a against a real P1 corpus for the first
+    // time): this loop was already implicitly single-slot -- it reads `slot_id` from the first
+    // frame and never re-checks it -- but never stopped at a slot boundary, so a real multi-slot
+    // capture (P1's corpus is a raw 30s/850K-frame dump of the whole rig session, not a
+    // single-transmission fixture like class-b's 14-frame oracle pcaps) just kept accumulating
+    // into the arena until oi_p2_write_arena's overflow guard tripped. Slot-boundary demuxing
+    // across a live multi-slot stream is p3's job (live-tap-ul-inject), not this MVP tool's --
+    // bounding the feed to the first slot_id observed makes the implicit assumption explicit
+    // instead of overflowing, and is the correct scope for a class-a STRUCTURAL check (it only
+    // needs one slot's worth of real frames to prove the pipeline runs to completion).
+    if (have_slot_id && desc.slot_id != slot_id) {
+      break;
+    }
     desc.arena_offset = arena_cursor;
     desc.frame_len = (uint32_t)frame.size();
 
