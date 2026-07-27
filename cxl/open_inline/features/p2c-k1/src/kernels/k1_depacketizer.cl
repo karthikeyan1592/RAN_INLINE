@@ -11,11 +11,16 @@
  *
  * By the time a descriptor reaches this kernel, oi_oran_preparse() (p2a, called by the
  * ingest_backend — p2a-scaffold/VERIFICATION.md's ABI reconciliation) has already parsed
- * symbol_id/section_id/filter_index/start_prb/nof_prbs/eth_hdr_len into oi_frame_desc. This kernel
- * does NOT re-parse those fields (in particular, it does NOT re-detect the VLAN tag) — it only
- * locates and converts the IQ payload, using OI_WIRE_TOTAL_HEADER_BYTES(desc.eth_hdr_len), the
- * SAME parameterized macro oi_oran_preparse.cpp uses (so a drift between the two would show up as
- * a K1 test failure, not a silent inconsistency).
+ * symbol_id/section_id/filter_index/start_prb/nof_prbs/eth_hdr_len/payload_byte_off into
+ * oi_frame_desc. This kernel does NOT re-parse those fields (in particular, it does NOT re-detect
+ * the VLAN tag, and — 2026-07-26, real bug found live on GCP, see oi_oran_wire_layout.h's header
+ * comment — it does NOT re-derive whether a 2-byte udCompHdr+reserved field is present either) —
+ * it only locates and converts the IQ payload, using desc.payload_byte_off directly (already the
+ * fully-resolved absolute byte offset; the earlier OI_WIRE_TOTAL_HEADER_BYTES(desc.eth_hdr_len)
+ * re-derivation this kernel used to do was exactly the bug: it silently assumed the udCompHdr
+ * field is always absent, which is only true for the static-compression builder p2c-k1's own
+ * k1_test.cpp fixtures use — real ru_emulator-sourced frames carry it and were being depacketized
+ * 2 bytes short). One parser (oi_oran_preparse_frame) decides the offset, this kernel obeys.
  *
  * Work-item = one descriptor (== one U-plane section's RE span; MVP: always the whole 51-PRB band
  * in one section, so one work-item scatters all 612 REs of its symbol).
@@ -70,14 +75,12 @@ __kernel void k1_depacketize(
   // frame's actual byte length, header included. Malformed/truncated -> drop, not fatal: leave
   // the bitmap bit unset and don't scatter anything for this descriptor.
   //
-  // desc.eth_hdr_len (2026-07-24): the Ethernet header length (14 untagged, 18 with one 802.1Q
-  // tag) as already determined by oi_oran_preparse_frame() from the real EtherType position --
-  // this kernel does NOT re-detect the tag itself (single source of truth: one parser decides,
-  // the kernel obeys, so the two can never disagree -- same reasoning as the oi_p2_feed
-  // reconciliation, p2a-scaffold/VERIFICATION.md). p1's ru_emulator finding (--vlan_tag is
-  // CLI::Range(1,65536), no untagged option) means the real wire will always carry a tag, but the
-  // kernel makes no assumption either way -- it just uses whatever the descriptor says.
-  uint total_header_bytes = OI_WIRE_TOTAL_HEADER_BYTES((uint)desc.eth_hdr_len);
+  // desc.payload_byte_off (2026-07-24 eth_hdr_len, extended 2026-07-26 with udcomphdr_bytes): the
+  // absolute byte offset of the IQ payload, already fully resolved by oi_oran_preparse_frame() --
+  // this kernel does NOT re-detect the VLAN tag or re-derive the compression-header mode itself
+  // (single source of truth: one parser decides, the kernel obeys, so the two can never disagree
+  // -- same reasoning as the oi_p2_feed reconciliation, p2a-scaffold/VERIFICATION.md).
+  uint total_header_bytes = (uint)desc.payload_byte_off;
   uint required_bytes = total_header_bytes +
                         (uint)desc.nof_prbs * OI_WIRE_RES_PER_PRB * OI_WIRE_BYTES_PER_RE;
   if (desc.frame_len < required_bytes || desc.symbol_id >= OI_K1_NOF_SYMBOLS) {

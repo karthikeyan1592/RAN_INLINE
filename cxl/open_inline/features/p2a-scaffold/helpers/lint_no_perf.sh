@@ -26,8 +26,9 @@ while IFS= read -r -d '' f; do
     HITS=$((HITS + 1))
   fi
 done < <(find "$FEATURES_ROOT" \
-          \( -path "*/p2*/src/*" -o -path "*/p2*/tests/*" -o -path "*/p2*/helpers/*" \) \
-          -type f \( -name "*.py" -o -name "*.cl" -o -name "*.h" -o -name "*.cpp" -o -name "*.sh" \) \
+          \( -path "*/p2*/src/*" -o -path "*/p2*/tests/*" -o -path "*/p2*/helpers/*" \
+             -o -path "*/p2*/gates/*" \) \
+          -type f \( -name "*.py" -o -name "*.cl" -o -name "*.h" -o -name "*.cpp" -o -name "*.sh" -o -name "*.yml" \) \
           -not -name "lint_no_perf.sh" -print0 2>/dev/null)
 
 if [ "$HITS" -gt 0 ]; then

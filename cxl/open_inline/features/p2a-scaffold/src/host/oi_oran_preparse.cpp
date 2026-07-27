@@ -11,10 +11,18 @@
 // CLI::Range(1,65536) with no untagged option, so the real wire always carries a tag -- rather
 // than bake in either answer, this function detects the tag per-frame and the rest of the
 // pipeline (K1's kernel) consumes the result instead of assuming or re-deriving it.
+//
+// udcomphdr_bytes (2026-07-26, see oi_oran_wire_layout.h's header comment): unlike eth_hdr_len,
+// the udCompHdr+reserved field's presence (0 or 2 bytes) is NOT autodetected from the frame's own
+// bytes -- it reads as 0x00 0x00 for the none/16 config either way, so "present with zero content"
+// and "absent" are indistinguishable by content alone. The caller supplies it; this function only
+// folds it into the final payload_byte_off, alongside eth_hdr_len, so downstream consumers never
+// re-derive either half themselves.
 
 extern "C" oi_preparse_status oi_oran_preparse_frame(oi_oran_preparse_state* state,
                                                      const uint8_t* frame_bytes,
                                                      uint32_t frame_len,
+                                                     uint8_t udcomphdr_bytes,
                                                      oi_frame_desc* out_desc) {
   // Ethernet-layer EtherType/VLAN detection (2026-07-24): read EtherType at byte 12; if it's the
   // 802.1Q TPID (0x8100), the real EtherType sits 4 bytes further out, at byte 16. Reject only if
@@ -43,7 +51,8 @@ extern "C" oi_preparse_status oi_oran_preparse_frame(oi_oran_preparse_state* sta
     }
   }
 
-  if (frame_len < OI_WIRE_TOTAL_HEADER_BYTES(eth_hdr_len)) {
+  uint32_t payload_byte_off = OI_WIRE_PAYLOAD_OFFSET(eth_hdr_len, udcomphdr_bytes);
+  if (frame_len < payload_byte_off) {
     return OI_PREPARSE_ERR_TRUNCATED;
   }
 
@@ -114,6 +123,7 @@ extern "C" oi_preparse_status oi_oran_preparse_frame(oi_oran_preparse_state* sta
   out_desc->start_prb = start_prb;
   out_desc->nof_prbs = nof_prb;
   out_desc->eth_hdr_len = static_cast<uint8_t>(eth_hdr_len);
+  out_desc->payload_byte_off = static_cast<uint8_t>(payload_byte_off);
   memset(out_desc->reserved, 0, sizeof(out_desc->reserved));
   // arena_offset/frame_len are intentionally NOT set here -- the caller (ingest_backend) already
   // knows them (it placed the bytes), and sets them on out_desc itself before/after this call.

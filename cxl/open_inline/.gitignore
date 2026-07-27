@@ -1,6 +1,11 @@
-# Build output and captured pcap corpora -- large, regenerable, exceed GitHub's 100MB file limit.
-# Regenerate via the deploy scripts under features/p1-ran-baseline/helpers/ rather than committing.
+build/
 .build/
-artifacts/
 __pycache__/
 *.pyc
+*.o
+*.a
+*.so
+
+# Generated live-capture artifacts (pcaps, ledgers) — large, binary, reproducible via the
+# documented runbooks (DEFERRED_LIVE_GATES.md) rather than carried in git history.
+artifacts/

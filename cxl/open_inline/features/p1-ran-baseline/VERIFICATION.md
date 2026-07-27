@@ -347,6 +347,50 @@ fixed as found rather than worked around. In rough chronological order:
   at `artifacts/p1/pcaps/20260725T180323Z/`, correctly named, correctly counted, manifest complete.
 - **P1-G1 + P1-G2: BOTH GREEN.** `bring_up.sh` and `deploy_and_bring_up.sh` both report `PASS`.
 
+## WSL2 local attempt (2026-07-27) — real, more precise confirmation of the earlier WSL2-stall finding
+
+An earlier session (item 17 above, 2026-07-25) already noted "the earlier WSL2 stall was purely
+shared-host CPU contention, not a protocol issue — a dedicated VM resolves it completely," but
+without much diagnostic detail (that finding predates the src-MAC BPF fix that later cut ingest CPU
+load ~3x, which is why a fresh local attempt seemed worth trying again). Real GCP live-debugging
+work later the same date (see `p3-live-tap-ul-inject/VERIFICATION.md`'s "Real bugs found and fixed"
+items 11-12) fixed several real bugs unrelated to this host-level issue; a subsequent session
+attempted the SIM-tier rig on this WSL2 host again, now with all of that fixed, to see if it fit.
+
+**Real, more precise result this time**: `bring_up.sh`'s own full run (baseline images, no oracle
+injection, no gpu-phy — the plainest version of this rig) passed P1-R7 (NG setup), P1-R8 (eCPRI,
+30s capture, 829,232 real frames including 163,366 real UL), and the 60-second stability hold
+cleanly — but the **10-minute soak (P1-R9) failed for real**: `counters_monotonic: false` (a real
+reading, not a probe failure — both snapshots returned real numeric values that were simply
+unchanged 10 minutes apart). Root-caused directly, not assumed: `ru-emu`'s own internal KPI table
+(via `docker logs`) showed `TX_TOTAL`/`RX_TOTAL` stuck at `0`, sustained, with its timing worker
+logging frequent "woke up late" warnings (500-4000+us late, 14-113 symbols late per event, several
+per second). Manually re-read gnb's fronthaul sysfs counters twice, 10 seconds apart, while the
+containers were still up: byte-for-byte identical both times, confirming this wasn't a stale-cache
+or probe artifact — traffic had genuinely, currently stopped flowing.
+
+**New, real, useful data point**: run the SAME rig's `p1-soak-stability` gate at a SHORTER 60-second
+window (this feature's own `gates/suite.yml` spec, `--seconds 60`) instead of the standalone
+script's 600-second default, and it **passes cleanly** — `counters_monotonic: true`, for real,
+verified via the actual JSON output, not assumed from a green exit code. Run twice, both clean. This
+means the stall isn't present from the very start of a run; it develops (or is triggered) sometime
+after roughly a minute, consistent with a resource/scheduling-drift explanation rather than an
+immediate hard failure — WSL2's virtualized scheduler apparently cannot sustain the sub-millisecond,
+low-jitter wakeup guarantees `ru-emu`'s real-time timing thread needs for more than about a minute
+under this host's real (4-core, ~8GB) constraints, even with the CPU-load-reducing fixes already
+applied. Not fully proven (didn't have the time/access to test e.g. real-time process priority or
+Windows-side WSL2 CPU pinning as a possible mitigation) — flagged as the leading, consistent-with-
+prior-session explanation, not a certainty.
+
+**Practical implication, not yet acted on**: this host CAN produce a real, honest, useful P5-G2
+WSL2-half ledger for gates that don't need sustained multi-minute live traffic (see
+`p5-one-command-rig/VERIFICATION.md` — every local unit-test gate across p1-p4 passed for real, and
+even `p1-soak-stability` passed at its own suite-specced 60s window) — but the FULL, ≥1000-slot
+P3-I1 gate specifically (which needs the rig to sustain real traffic far longer than a minute) is
+not achievable on this host and needs the GCP VM, exactly as the earlier 2026-07-25 finding already
+concluded. Full account, exact numbers, and the escalation-blocker note (GCP VM unreachable that
+same night): `DEFERRED_LIVE_GATES.md`'s "second GCP session log" / third WSL2 session log.
+
 ## Known-open items (updated 2026-07-25, end of session)
 
 - None remaining for P1-G1/P1-G2 — both fully green as of item 17 above. `kpi_snapshot.sh`'s

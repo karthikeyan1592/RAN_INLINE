@@ -1,0 +1,60 @@
+# p4-phy-l2-seam — compose overlay (P4-R10/R11, IF-P4-COMPOSE).
+#
+# Fifth compose layer, additive to whichever of {upstream, compose.sim.yml, compose.p1.yml,
+# compose.p3.yml} the run needs (P4 itself is standalone re: p3 -- it only needs gpu-phy running,
+# not the full fronthaul rig -- but a real end-to-end P4-G4 run needs all of them together).
+#
+# gpu-phy: additive volume mount + an explicit `command:` override (P4-G4's own real, dedicated
+# run of gpu_phy_seam_bridge, the LLD Q1 wiring this feature adds -- tools/gpu_phy_seam_bridge.c).
+# `command:` is a full-scalar override in compose, not merged (the same real bug class already
+# found and fixed in compose.p3.yml this session) -- when p4's overlay is layered LAST (after
+# compose.p3.yml, whose own gpu-phy command runs bit_exact_harness for P3-I1's separate run), THIS
+# file's command wins, matching DEFERRED_LIVE_GATES.md's runbook: P3-I1 and P4-G4 are two
+# sequential passes over the same rig (bring up once, run P3-I1's gate with p3's command, then
+# `docker compose up -d --force-recreate gpu-phy` with p4's overlay added/reordered last to swap
+# gpu-phy's command to this feature's bridge for P4-G4's own run), not simultaneous.
+# l2-stub: entirely new service, this feature's own minimal C consumer (P4-R11) -- NOT an OCUDU
+# MAC integration (SPEC's own explicit non-goal).
+
+services:
+  gpu-phy:
+    networks:
+      fronthaul:
+        mac_address: "02:6f:69:00:01:04"   # distinct from ru-emu's .01, gnb's .02, p3's own gpu-phy .03
+    cap_add:
+      - NET_RAW
+    volumes:
+      - oi_seam_ring:/oi/seam
+      - ${P4_FEATURE_ROOT:?P4_FEATURE_ROOT must be set to features/p4-phy-l2-seam}/build:/oi/p4-build:ro
+    environment:
+      OI_SEAM_RING_PATH: /oi/seam/ring.bin
+      OI_SEAM_RING_CAPACITY: "64"        # LLD Q2: MVP placeholder, not a correctness parameter
+      OI_SEAM_TB_MAX_BYTES: "3457"       # real, computed value -- see oi_seam_ring.h's own header
+      OI_SEAM_FORMAT_VERSION: "1"
+    command: ["/oi/p4-build/gpu_phy_seam_bridge",
+             "/oi/p4-build/../../p2a-scaffold/tests/fixtures/mvp_config.yaml",
+             "eth0", "4", "/oi/seam/ring.bin", "64", "0x4601", "0", "20", "02:6f:69:00:01:01", "2"]
+
+  l2-stub:
+    image: oi/l2-stub:${OI_TAG:-dev}
+    build:
+      context: ../../..
+      dockerfile: features/p4-phy-l2-seam/docker/Dockerfile.l2stub
+    volumes:
+      - oi_seam_ring:/oi/seam
+    environment:
+      OI_SEAM_RING_PATH: /oi/seam/ring.bin
+      OI_SEAM_RING_CAPACITY: "64"
+      OI_SEAM_TB_MAX_BYTES: "3457"
+      OI_SEAM_FORMAT_VERSION: "1"
+      OI_SEAM_CONSUMER_STATE_PATH: /oi/seam/consumer_state.json
+    depends_on:
+      gpu-phy:
+        condition: service_started
+
+volumes:
+  # Named, volume-persisted (P4-R10) -- NOT container tmpfs/`ipc: container:X`. Docker's default
+  # local volume driver backs this with a real directory on the host filesystem (not /dev/shm),
+  # so either service's independent restart/recreate leaves the ring.bin file (and therefore the
+  # ring's contents) untouched -- exactly the persistence property P4-R10 requires.
+  oi_seam_ring: {}

@@ -1,0 +1,17 @@
+schema: oi-p5-suite/2
+phase: p2d
+feature: p2d-k2-k3
+compose_overlays: []
+setup: []
+teardown: []
+gates:
+  - id: p2d-k2-test
+    type: unit
+    script: gates/run_make_target.sh
+    args: ["run-k2"]
+    timeout_s: 180
+  - id: p2d-k3-test
+    type: unit
+    script: gates/run_make_target.sh
+    args: ["run-k3"]
+    timeout_s: 180

@@ -1,0 +1,31 @@
+schema: oi-p5-suite/2
+phase: p1
+feature: p1-ran-baseline
+compose_overlays:
+  - docker/compose.p1.yml
+compose_env:
+  GNB_CONFIG_PATH: "{feature_root}/docker/configs/gnb_ofh_testmode.yml"
+  P1_RU_EMU_CONFIG_PATH: "{feature_root}/docker/configs/ru_emu.yml"
+setup: []
+teardown: []
+gates:
+  - id: p1-check-sctp
+    type: unit
+    script: gates/run_check_sctp.sh
+    args: []
+    timeout_s: 30
+  - id: p1-rigcfg-crosscheck
+    type: unit
+    script: helpers/rigcfg_crosscheck.sh
+    args: []
+    timeout_s: 30
+  - id: p1-assert-ecpri
+    type: integration
+    script: gates/run_assert_ecpri.sh
+    args: []
+    timeout_s: 60
+  - id: p1-soak-stability
+    type: integration
+    script: gates/run_soak_stability.sh
+    args: ["--seconds", "60"]
+    timeout_s: 120

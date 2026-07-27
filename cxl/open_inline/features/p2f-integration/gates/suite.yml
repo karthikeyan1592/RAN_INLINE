@@ -1,0 +1,22 @@
+schema: oi-p5-suite/2
+phase: p2f
+feature: p2f-integration
+compose_overlays: []
+setup: []
+teardown: []
+gates:
+  - id: p2f-cb-segment-test
+    type: unit
+    script: gates/run_make_target.sh
+    args: ["run-cb-segment"]
+    timeout_s: 180
+  - id: p2f-ldpc-decode-test
+    type: unit
+    script: gates/run_make_target.sh
+    args: ["run-ldpc-decode"]
+    timeout_s: 180
+  - id: p2f-pipeline-test
+    type: integration
+    script: gates/run_python_script.sh
+    args: ["tests/integration/pipeline_test.py"]
+    timeout_s: 300

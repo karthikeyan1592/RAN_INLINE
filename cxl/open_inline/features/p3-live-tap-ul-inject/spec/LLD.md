@@ -243,31 +243,43 @@ See Public APIs §M3. `socket_drops` sources `PACKET_STATISTICS`'s `tp_drops` fi
 
 ### Extension to `ru_emu.yml` (additive-only; absence of the block = P3-R4 behavior)
 
+**Corrected 2026-07-26 (real patch build + schema regression test, not the original draft
+below):** this LLD's own first-draft example repeated the exact same two mistakes
+`p1-ran-baseline/docker/configs/ru_emu.yml`'s header comment already found and corrected: (1) the
+top-level shape is `ru_emu: cells: [...]`, not a flat `ru_emu: [...]` list (confirmed via
+`ru_emulator_cli11_schema.cpp`'s real `--cells` mechanism); (2) the real CLI11/YAML option names
+are `ru_mac_addr`/`du_mac_addr`/`compr_method_ul`/`compr_bitwidth_ul`/`ul_port_id`/`dl_port_id`/
+`prach_port_id` (per `configure_cli11_ru_emu_args`), not `ru_mac_address`/`ul_compr_method`/
+`ru_ul_port_id` etc. Caught by `p3-live-tap-ul-inject/tests/patch_schema_regression_test.cpp`
+compiling the real patched schema and parsing this exact example -- fixed here, not silently
+left wrong for the next reader.
+
 ```yaml
 log: {level: info, filename: stdout}
 ru_emu:
-  - network_interface: eth0
-    ru_mac_address: 02:6f:69:00:01:01
-    du_mac_address: 02:6f:69:00:01:02
-    vlan_tag: 1
-    bandwidth: 20
-    ul_compr_method: none        # P3-R3 pin: was upstream default "bfp"; oracle injection requires
-    ul_compr_bitwidth: 16        # uncompressed 16-bit, no udCompHdr — mismatch vs oracle files'
-                                 # iq_format is a startup error (D4), not a silent re-encode
-    ru_ul_port_id: [0]
-    ru_dl_port_id: [0]
-    ru_prach_port_id: [4]
-    # NO dpdk_config key — unchanged from P1 (socket transceiver, HLD D2)
-    oracle_injection:            # NEW block (this feature). Entirely absent ⇒ upstream random-IQ
-                                 # generator runs unmodified (P3-R4).
-      enabled: true
-      eaxc_id: 0                 # must be a member of ru_ul_port_id
-      files:                     # ordered list; index = schedule position (§3.2); N = len(files)
-        - /oracle/slot_0000.osg
-        - /oracle/slot_0001.osg
-        - /oracle/slot_0002.osg
-        # ... up to N entries; a run of ≥1000 injected slots (P3-R11 default) cycles this list
-      fail_on_format_mismatch: true   # always true at MVP; documents the P3-R3 invariant, not a toggle
+  cells:
+    - network_interface: eth0
+      ru_mac_addr: "02:6f:69:00:01:01"
+      du_mac_addr: "02:6f:69:00:01:02"
+      vlan_tag: 1
+      bandwidth: 20
+      compr_method_ul: none        # P3-R3 pin: was upstream default "bfp"; oracle injection requires
+      compr_bitwidth_ul: 16        # uncompressed 16-bit, no udCompHdr — mismatch vs oracle files'
+                                   # iq_format is a startup error (D4), not a silent re-encode
+      ul_port_id: [0]
+      dl_port_id: [0]
+      prach_port_id: [4]
+      # NO dpdk_config key — unchanged from P1 (socket transceiver, HLD D2)
+      oracle_injection:            # NEW block (this feature). Entirely absent ⇒ upstream random-IQ
+                                   # generator runs unmodified (P3-R4).
+        enabled: true
+        eaxc_id: 0                 # must be a member of ul_port_id
+        files:                     # ordered list; index = schedule position (§3.2); N = len(files)
+          - /oracle/slot_0000.osg
+          - /oracle/slot_0001.osg
+          - /oracle/slot_0002.osg
+          # ... up to N entries; a run of ≥1000 injected slots (P3-R11 default) cycles this list
+        fail_on_format_mismatch: true   # always true at MVP; documents the P3-R3 invariant, not a toggle
 ```
 
 ### gpu-phy tap config (new; feature-owned, not an upstream schema)

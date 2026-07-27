@@ -1,0 +1,9 @@
+schema: oi-p5-suite/2
+phase: p5mock-malformed
+compose_overlays:
+  - docker/compose.yml
+gates:
+  - id: p5mock-malformed-g1
+    type: unit
+    script: scripts/does_not_exist.sh
+    timeout_s: 20

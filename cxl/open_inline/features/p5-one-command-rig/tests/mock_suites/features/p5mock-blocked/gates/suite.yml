@@ -1,0 +1,11 @@
+schema: oi-p5-suite/2
+phase: p5mock-blocked
+feature: p5mock-blocked-feature
+compose_overlays:
+  - docker/compose.yml
+gates:
+  - id: p5mock-blocked-g1
+    type: unit
+    script: scripts/gate_blocked.sh
+    args: []
+    timeout_s: 20

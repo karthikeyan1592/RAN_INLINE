@@ -80,13 +80,22 @@ def ensure_pipeline_runner_built():
         subprocess.run(["make", "build/pipeline_runner"], cwd=FEATURE_ROOT, check=True)
 
 
-def run_pipeline(pcap_path, mcs_index):
+# udcomphdr_bytes (2026-07-26, see oi_oran_wire_layout.h's header comment): 0 for class-b
+# oracle-packed pcaps (oracle_tx_gen.cpp uses OCUDU's STATIC compression builder), 2 for class-a
+# P1-captured pcaps (the real ru_emulator binary always uses the DYNAMIC builder's wire layout,
+# confirmed byte-for-byte against the real corpus, 163,268/163,268 frames matched). Never guessed
+# per-invocation -- each class knows its own producer.
+UDCOMPHDR_BYTES_CLASS_B_STATIC = 0
+UDCOMPHDR_BYTES_CLASS_A_REAL_RIG = 2
+
+
+def run_pipeline(pcap_path, mcs_index, udcomphdr_bytes):
     """Invokes pipeline_runner with CWD = p2a-scaffold/tests/ (its own kernel .cl source paths are
     CWD-relative -- see oi_p2_host.cpp's own documented fragility, VERIFICATION.md). Returns the
     parsed JSON result dict, or None + prints stderr if the runner itself errored out.
     """
     result = subprocess.run(
-        [PIPELINE_RUNNER, CONFIG_YAML, pcap_path, str(mcs_index)],
+        [PIPELINE_RUNNER, CONFIG_YAML, pcap_path, str(mcs_index), str(udcomphdr_bytes)],
         cwd=os.path.join(P2A_ROOT, "tests"),
         capture_output=True, text=True,
     )
@@ -102,7 +111,7 @@ def class_b_oracle_packed():
     for mcs_index in (4, 13, 21):
         pcap_path, _json_path, sidecar = pack_oracle(mcs_index, seed=mcs_index * 1000 + 7,
                                                       out_dir=ORACLE_PCAP_DIR)
-        result = run_pipeline(pcap_path, mcs_index)
+        result = run_pipeline(pcap_path, mcs_index, UDCOMPHDR_BYTES_CLASS_B_STATIC)
         label = f"class-b MCS{mcs_index}"
         check(result is not None, f"{label}: pipeline_runner completes without error")
         if result is None:
@@ -147,7 +156,9 @@ def class_a_p1_captured():
         if ".pcap" not in fname:
             continue
         pcap_path = os.path.join(run_dir, fname)
-        result = run_pipeline(pcap_path, mcs_index=4)  # MCS choice is arbitrary for structural-only
+        # MCS choice is arbitrary for structural-only; udcomphdr_bytes=2 since this is a real
+        # ru_emulator-sourced capture (2026-07-26 fix -- see oi_oran_wire_layout.h's header comment).
+        result = run_pipeline(pcap_path, mcs_index=4, udcomphdr_bytes=UDCOMPHDR_BYTES_CLASS_A_REAL_RIG)
         check(result is not None, f"class-a {run_ids[-1]}/{fname}: pipeline runs to completion")
         if result is not None:
             check(result["taps_ok"], f"class-a {run_ids[-1]}/{fname}: I2-I5 taps readable")

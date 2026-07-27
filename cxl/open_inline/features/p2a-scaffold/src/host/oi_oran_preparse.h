@@ -52,8 +52,17 @@ typedef struct {
 /// counter on symbol-wrap detection. Returns non-OK without modifying *out_desc on a malformed/
 /// truncated frame (caller's error-handling matches the existing "malformed frame -> drop, not
 /// fatal" tolerance already specified for K1/p3's ingest layer).
+///
+/// `udcomphdr_bytes` (added 2026-07-26, see oi_oran_wire_layout.h's header comment for the full
+/// citation trail): OI_WIRE_UDCOMPHDR_BYTES_ABSENT (0) or _PRESENT (2), an explicit fact the
+/// caller already knows from its own rig/fixture (which OCUDU U-plane builder produced these
+/// frames), never sniffed from the frame's own bytes -- the 2 candidate bytes read as 0x00 0x00
+/// for the none/16 config and are NOT distinguishable from "absent" by content alone. Folded
+/// together with eth_hdr_len into out_desc->payload_byte_off (OI_WIRE_PAYLOAD_OFFSET), so
+/// downstream consumers (K1's kernel included) never re-derive the offset themselves.
 oi_preparse_status oi_oran_preparse_frame(oi_oran_preparse_state* state,
                                           const uint8_t* frame_bytes, uint32_t frame_len,
+                                          uint8_t udcomphdr_bytes,
                                           oi_frame_desc* out_desc);
 
 #ifdef __cplusplus

@@ -1,0 +1,14 @@
+# p4-phy-l2-seam — l2-stub image (P4-R11). Minimal: no OCUDU, no OpenCL, no GPU-API of any kind
+# (P4-R4/R11) -- pure C11 + pthreads, matches this feature's own Makefile exactly.
+FROM ubuntu:24.04 AS build
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /src
+COPY features/p4-phy-l2-seam/src/ ./src/
+RUN gcc -std=c11 -O2 -Wall -Wextra -Isrc -D_POSIX_C_SOURCE=200809L \
+      src/l2_stub_main.c src/oi_seam.c src/oi_seam_producer.c src/oi_l2_validate.c \
+      -lpthread -o /l2_stub_main
+
+FROM ubuntu:24.04
+COPY --from=build /l2_stub_main /usr/local/bin/l2_stub_main
+ENTRYPOINT ["/bin/sh", "-c", "exec /usr/local/bin/l2_stub_main \"$OI_SEAM_RING_PATH\" \"$OI_SEAM_RING_CAPACITY\" \"$OI_SEAM_CONSUMER_STATE_PATH\""]

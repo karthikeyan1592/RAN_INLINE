@@ -1,0 +1,11 @@
+schema: oi-p5-suite/2
+phase: p5mock-timeout
+feature: p5mock-timeout-feature
+compose_overlays:
+  - docker/compose.yml
+gates:
+  - id: p5mock-timeout-g1
+    type: unit
+    script: scripts/gate_timeout.sh
+    args: []
+    timeout_s: 2

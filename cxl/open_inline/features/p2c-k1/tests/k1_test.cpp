@@ -142,6 +142,20 @@ int main() {
   auto ecpri_decoder = ecpri::create_ecpri_packet_decoder_ignoring_payload_size(logger, /*sector=*/0);
   check(uplane_decoder != nullptr && ecpri_decoder != nullptr, "real OCUDU U-plane/eCPRI decoders created");
 
+  // Real bug found live on GCP 2026-07-26 (see oi_oran_wire_layout.h's header comment): K1's kernel
+  // used to silently assume the udCompHdr+reserved field (2 bytes) is always absent, matching only
+  // the STATIC builder above -- but real ru_emulator-sourced frames use the DYNAMIC builder's wire
+  // layout unconditionally. Test 6 below cross-validates K1 against the REAL dynamic-compression
+  // builder/decoder pair, the same way tests 1-5 already do against the static pair, so this is a
+  // real OCUDU round-trip, not a hand-inserted padding hack.
+  auto decompressor_dynamic = create_iq_decompressor(compression_type::none, logger, "generic");
+  auto uplane_builder_dynamic = create_dynamic_compr_method_ofh_user_plane_packet_builder(logger, *compressor);
+  auto uplane_decoder_dynamic = create_dynamic_compr_method_ofh_user_plane_packet_decoder(
+      logger, subcarrier_spacing::kHz30, cyclic_prefix{}, kNofPrbMvp, /*sector_id=*/0,
+      std::move(decompressor_dynamic));
+  check(uplane_builder_dynamic != nullptr && uplane_decoder_dynamic != nullptr,
+       "real OCUDU dynamic-compression U-plane builder/decoder created");
+
   std::mt19937 rgen(9001);
 
   // --- OpenCL/PoCL setup, build the actual kernel once ---
@@ -240,7 +254,7 @@ int main() {
     // Our own preparse vs the real decoder's parsed fields.
     oi_oran_preparse_state state{};
     oi_frame_desc desc{};
-    auto st = oi_oran_preparse_frame(&state, frame.data(), static_cast<uint32_t>(frame.size()), &desc);
+    auto st = oi_oran_preparse_frame(&state, frame.data(), static_cast<uint32_t>(frame.size()), OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc);
     std::snprintf(label, sizeof(label), "oi_oran_preparse_frame OK (symbol_id=%u)", symbol_id);
     check(st == OI_PREPARSE_OK, label);
     std::snprintf(label, sizeof(label), "preparse symbol_id matches real decoder (symbol_id=%u)", symbol_id);
@@ -299,7 +313,7 @@ int main() {
     std::vector<uint8_t> frame = build_real_frame(*uplane_builder, *ecpri_builder, /*symbol_id=*/5, rgen, &iq);
     oi_oran_preparse_state state{};
     oi_frame_desc desc{};
-    oi_oran_preparse_frame(&state, frame.data(), static_cast<uint32_t>(frame.size()), &desc);
+    oi_oran_preparse_frame(&state, frame.data(), static_cast<uint32_t>(frame.size()), OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc);
     desc.arena_offset = 0;
     desc.frame_len = static_cast<uint32_t>(frame.size()) / 2;  // truncate: declared nof_prbs no longer fits
 
@@ -318,7 +332,7 @@ int main() {
     std::vector<uint8_t> frame = build_real_frame(*uplane_builder, *ecpri_builder, /*symbol_id=*/4, rgen, &iq);
     oi_oran_preparse_state state{};
     oi_frame_desc desc{};
-    oi_oran_preparse_frame(&state, frame.data(), static_cast<uint32_t>(frame.size()), &desc);
+    oi_oran_preparse_frame(&state, frame.data(), static_cast<uint32_t>(frame.size()), OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc);
     desc.arena_offset = 0;
     desc.frame_len = static_cast<uint32_t>(frame.size());
 
@@ -350,8 +364,8 @@ int main() {
 
     oi_oran_preparse_state state{};
     oi_frame_desc desc_hi{}, desc_lo{};
-    oi_oran_preparse_frame(&state, frame_hi.data(), static_cast<uint32_t>(frame_hi.size()), &desc_hi);
-    oi_oran_preparse_frame(&state, frame_lo.data(), static_cast<uint32_t>(frame_lo.size()), &desc_lo);
+    oi_oran_preparse_frame(&state, frame_hi.data(), static_cast<uint32_t>(frame_hi.size()), OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc_hi);
+    oi_oran_preparse_frame(&state, frame_lo.data(), static_cast<uint32_t>(frame_lo.size()), OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc_lo);
     // Concatenate into one arena: frame_hi (symbol 9) placed BEFORE frame_lo (symbol 3), i.e.
     // "arrived" out of symbol order, mirroring the error table's reordering scenario.
     std::vector<uint8_t> arena = frame_hi;
@@ -411,7 +425,7 @@ int main() {
     if (ok && !results.sections.empty()) {
       oi_oran_preparse_state state{};
       oi_frame_desc desc{};
-      auto st = oi_oran_preparse_frame(&state, frame.data(), static_cast<uint32_t>(frame.size()), &desc);
+      auto st = oi_oran_preparse_frame(&state, frame.data(), static_cast<uint32_t>(frame.size()), OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc);
       check(st == OI_PREPARSE_OK, "VLAN-tagged frame: oi_oran_preparse_frame OK");
       check(desc.eth_hdr_len == OI_WIRE_ETH_HEADER_BYTES_TAGGED,
             "VLAN-tagged frame: preparse sets eth_hdr_len == 18");
@@ -438,6 +452,82 @@ int main() {
       }
       check(re_match, "VLAN-tagged frame: K1 kernel RE grid bit-exact (mod bf16) vs real OCUDU decoder "
                      "-- proves K1 correctly used desc.eth_hdr_len==18, not a hardcoded 14");
+    }
+  }
+
+  // ---- Test 6 (2026-07-26): dynamic-compression-header frame round-trip -- real bug found live on
+  // GCP (see oi_oran_wire_layout.h's header comment): K1's kernel + this project's shared parser
+  // used to silently assume the udCompHdr+reserved field (2 bytes) is always absent, matching only
+  // the STATIC builder tests 1-5 exercise. Real ru_emulator-sourced frames use the DYNAMIC builder's
+  // wire layout (2 extra bytes) unconditionally. Uses the REAL OCUDU dynamic builder/decoder pair
+  // (create_dynamic_compr_method_ofh_user_plane_packet_builder/_decoder) -- an authentic OCUDU
+  // round-trip, not hand-inserted padding -- with udcomphdr_bytes=PRESENT threaded through preparse
+  // and consumed by K1 via desc.payload_byte_off, same structural + bit-exact comparison as Test 1.
+  {
+    std::vector<cbf16_t> iq;
+    uint8_t symbol_id = 8;
+    std::vector<uint8_t> frame = build_real_frame(*uplane_builder_dynamic, *ecpri_builder, symbol_id, rgen, &iq);
+
+    span<const uint8_t> after_eth(frame.data() + OI_WIRE_ETH_HEADER_BYTES, frame.size() - OI_WIRE_ETH_HEADER_BYTES);
+    ecpri::packet_parameters ecpri_params;
+    span<const uint8_t> oran_payload = ecpri_decoder->decode(after_eth, ecpri_params);
+    check(!oran_payload.empty(), "dynamic-compression frame: real eCPRI decode succeeds");
+
+    uplane_message_decoder_results results;
+    bool ok = uplane_decoder_dynamic->decode(results, oran_payload);
+    check(ok, "dynamic-compression frame: real O-RAN U-plane decode succeeds (real dynamic decoder)");
+    if (ok && !results.sections.empty()) {
+      oi_oran_preparse_state state{};
+      oi_frame_desc desc{};
+      auto st = oi_oran_preparse_frame(&state, frame.data(), static_cast<uint32_t>(frame.size()),
+                                       OI_WIRE_UDCOMPHDR_BYTES_PRESENT, &desc);
+      check(st == OI_PREPARSE_OK, "dynamic-compression frame: oi_oran_preparse_frame OK");
+      check(desc.payload_byte_off == OI_WIRE_TOTAL_HEADER_BYTES(OI_WIRE_ETH_HEADER_BYTES_UNTAGGED) + 2,
+            "dynamic-compression frame: preparse payload_byte_off correctly includes the 2-byte "
+            "udCompHdr+reserved field");
+      check(desc.symbol_id == results.params.symbol_id,
+            "dynamic-compression frame: preparse symbol_id matches real dynamic decoder");
+
+      desc.arena_offset = 0;
+      desc.frame_len = static_cast<uint32_t>(frame.size());
+
+      std::vector<oi_frame_desc> descs = {desc};
+      std::vector<cl_float2> re_grid;
+      uint32_t bitmap = 0;
+      run_kernel(descs, frame, desc.slot_id, &re_grid, &bitmap);
+      check((bitmap & (1u << symbol_id)) != 0, "dynamic-compression frame: K1 kernel sets symbol_bitmap bit");
+
+      bool re_match = true;
+      size_t first_mismatch = 0;
+      for (size_t sc = 0; sc < kNofSubcarriersMvp; sc++) {
+        cbf16_t expected = results.sections[0].iq_samples[sc];
+        cl_float2 got = re_grid[symbol_id * kNofSubcarriersMvp + sc];
+        if (to_bf16(got.s[0]) != expected.real || to_bf16(got.s[1]) != expected.imag) {
+          re_match = false;
+          first_mismatch = sc;
+          break;
+        }
+      }
+      check(re_match, "dynamic-compression frame: K1 kernel RE grid bit-exact (mod bf16) vs real OCUDU "
+                     "dynamic decoder -- proves K1 correctly used desc.payload_byte_off, not the old "
+                     "eth_hdr_len-only offset that silently dropped the udCompHdr+reserved bytes");
+      if (!re_match) {
+        cf_t expected = to_cf(results.sections[0].iq_samples[first_mismatch]);
+        cl_float2 got = re_grid[symbol_id * kNofSubcarriersMvp + first_mismatch];
+        std::fprintf(stderr, "  first mismatch at subcarrier %zu: expected=(%f,%f) got=(%f,%f)\n", first_mismatch,
+                     expected.real(), expected.imag(), got.s[0], got.s[1]);
+      }
+
+      // Negative control: re-parsing the SAME frame with the WRONG (pre-fix) udcomphdr_bytes=
+      // ABSENT must NOT produce the correct payload_byte_off -- proves this test would have caught
+      // the original bug rather than just exercising the fixed code path by construction.
+      oi_oran_preparse_state state_wrong{};
+      oi_frame_desc desc_wrong{};
+      oi_oran_preparse_frame(&state_wrong, frame.data(), static_cast<uint32_t>(frame.size()),
+                             OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc_wrong);
+      check(desc_wrong.payload_byte_off == desc.payload_byte_off - 2,
+            "dynamic-compression frame: the wrong (pre-fix) udcomphdr_bytes=ABSENT gives a "
+            "payload_byte_off 2 bytes short -- confirms this test exercises the real bug");
     }
   }
 

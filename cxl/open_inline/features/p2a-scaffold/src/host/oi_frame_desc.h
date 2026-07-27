@@ -73,7 +73,20 @@ typedef struct {
                          //            itself, so the two can never disagree (2026-07-24, p1's
                          //            ru_emulator finding: --vlan_tag is CLI::Range(1,65536), no
                          //            untagged option, so the real wire always carries a tag).
-  oi_u8  reserved[7];    // offset 25: zero-filled; future eAxC/BFP fields land here
+  oi_u8  payload_byte_off; // offset 25: absolute byte offset from frame start where IQ payload
+                         //            begins -- eth_hdr_len + eCPRI header + O-RAN msg/section
+                         //            header + udCompHdr/reserved (0 or 2 bytes, see
+                         //            oi_oran_wire_layout.h's OI_WIRE_UDCOMPHDR_BYTES_* constants).
+                         //            Set by oi_oran_preparse_frame() from the caller-supplied
+                         //            udcomphdr_bytes parameter (2026-07-26, real bug found live on
+                         //            GCP: real captured UL frames from ru_emulator's own frame
+                         //            builder carry a 2-byte udCompHdr+reserved field that
+                         //            OI_WIRE_TOTAL_HEADER_BYTES(eth_hdr_len) alone doesn't account
+                         //            for -- see oi_oran_wire_layout.h's header comment for the
+                         //            full citation trail). Same "one parser decides, kernel obeys"
+                         //            precedent as eth_hdr_len -- K1's kernel reads this field
+                         //            directly instead of re-deriving compression mode on-device.
+  oi_u8  reserved[6];    // offset 26: zero-filled; future eAxC/BFP fields land here
 } oi_frame_desc;
 #ifndef __OPENCL_C_VERSION__
 #pragma pack(pop)

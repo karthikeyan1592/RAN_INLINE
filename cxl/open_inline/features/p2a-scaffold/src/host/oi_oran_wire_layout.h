@@ -25,6 +25,34 @@
  * oi_oran_preparse_frame() from the real EtherType position and carried in
  * oi_frame_desc::eth_hdr_len — the code handles both cases so a live capture confirms which
  * branch the real rig exercises rather than gating on a guess (see p2a/p2c VERIFICATION.md).
+ *
+ * COMPRESSION HEADER (udCompHdr) — RESOLVED 2026-07-26, second live-capture surprise (p3's P3-I1
+ * gate on the GCP VM): OI_WIRE_TOTAL_HEADER_BYTES(eth_len) assumed the O-RAN U-plane section
+ * header is immediately followed by IQ data, matching
+ * ofh_uplane_message_builder_static_compression_impl::serialize_compression_header
+ * (ofh_uplane_message_builder_static_compression_impl.cpp:9-14 — "When the static IQ format is
+ * configured the udCompHdr and reserved fields are absent", 0 bytes written) and confirmed by
+ * k1_test.cpp's own round-trip, which uses exactly that builder
+ * (create_static_compr_method_ofh_user_plane_packet_builder). But real captured UL frames from
+ * apps/examples/ofh/ru_emulator.cpp's own hand-rolled frame construction (NOT the OCUDU library's
+ * builder classes at all — see set_static_header_params()/generate_test_data(),
+ * ru_emulator.cpp:195-244) unconditionally reserve and emit 2 extra bytes matching
+ * ofh_uplane_message_builder_dynamic_compression_impl::serialize_compression_header
+ * (ofh_uplane_message_builder_dynamic_compression_impl.cpp:10-23 — 1 byte
+ * `data_width<<4 | compression_type` + 1 reserved byte), regardless of the configured
+ * ul_compr_method/ul_compr_bitwidth (those values only change the BYTE CONTENTS, not whether the
+ * 2 bytes are present at all — ru_emulator.cpp:228-232 always writes frame[34]; the reserved byte
+ * at frame[35] is always 0 from its own hdr_template default). Confirmed byte-for-byte against two
+ * independent real corpora: p3's oracle-injection GCP capture (none/16 config, 1495 occurrences of
+ * an exact 2448-byte oracle payload, gap bytes == 0x00 0x00) and p1's baseline corpus
+ * (artifacts/p1/pcaps/20260725T180323Z, bfp/9 config, 163,268/163,268 real UL frames, gap bytes ==
+ * 0x91 0x00 == (9<<4)|1 exactly as predicted). Since this project's only real RU emulator (the
+ * upstream OCUDU example app) always uses this 2-byte layout, and p2f's oracle_tx_gen.cpp /
+ * p2c-k1's k1_test.cpp both use the STATIC builder (0 bytes) for their own synthetic fixtures,
+ * BOTH modes are real and coexist in this codebase — this is why OI_WIRE_UDCOMPHDR_BYTES_ABSENT/
+ * _PRESENT exist as an explicit, caller-supplied parameter (oi_oran_preparse_frame's
+ * `udcomphdr_bytes` argument) rather than being sniffed from the two bytes' content (0x00 0x00 is
+ * indistinguishable from "absent" by content alone when data_width=16/type=none).
  */
 #ifndef OI_ORAN_WIRE_LAYOUT_H
 #define OI_ORAN_WIRE_LAYOUT_H
@@ -52,6 +80,21 @@
 // desc->eth_hdr_len / desc.eth_hdr_len, never a compile-time guess.
 #define OI_WIRE_TOTAL_HEADER_BYTES(eth_len) \
   ((eth_len) + OI_WIRE_ECPRI_HEADER_BYTES + OI_WIRE_ORAN_HEADER_BYTES)  // = eth_len + 16
+
+// --- udCompHdr + reserved: 0 or 2 bytes, present iff the frame's real builder is the "dynamic
+// compression" profile (see header comment's 2026-07-26 finding) -- an explicit, caller-supplied
+// fact, never sniffed from the bytes' content.
+#define OI_WIRE_UDCOMPHDR_BYTES_ABSENT 0u   // static-compression builder / p2f's oracle_tx_gen.cpp
+                                            // / p2c-k1's k1_test.cpp fixtures
+#define OI_WIRE_UDCOMPHDR_BYTES_PRESENT 2u  // dynamic-compression builder / ru_emulator.cpp's own
+                                            // (unconditional) frame construction -- the real rig
+
+// --- Final payload byte offset, folding in eth_len AND udcomphdr_bytes. This is what
+// oi_oran_preparse_frame() computes once and writes into oi_frame_desc::payload_byte_off --
+// downstream consumers (K1's kernel included) read that field directly rather than re-deriving it
+// from this macro themselves (same "one parser decides" principle as eth_hdr_len).
+#define OI_WIRE_PAYLOAD_OFFSET(eth_len, udcomphdr_bytes) \
+  (OI_WIRE_TOTAL_HEADER_BYTES(eth_len) + (udcomphdr_bytes))
 
 // --- Byte offsets of individual header fields, relative to arena_offset (i.e. frame start) --------
 // All parameterized on `eth_len` (the real, per-frame Ethernet header length) -- see header note.

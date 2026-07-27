@@ -1,0 +1,49 @@
+schema: oi-p5-suite/2
+phase: p3
+feature: p3-live-tap-ul-inject
+compose_overlays:
+  - docker/compose.p3.yml
+compose_env:
+  GNB_CONFIG_PATH: "{root}/features/p1-ran-baseline/docker/configs/gnb_ofh_testmode.yml"
+  P1_RU_EMU_CONFIG_PATH: "{root}/features/p1-ran-baseline/docker/configs/ru_emu.yml"
+  P3_FEATURE_ROOT: "{feature_root}"
+  P3_RU_EMU_ORACLE_CONFIG_PATH: "{feature_root}/docker/configs/ru_emu_oracle_injection.yml"
+  P3_OSG_DIR: "/tmp/p3_osg"
+setup: []
+teardown: []
+gates:
+  - id: p3-patch-apply-check
+    type: unit
+    script: gates/run_patch_apply_check.sh
+    args: []
+    timeout_s: 30
+  - id: p3-osg-format-test
+    type: unit
+    script: gates/run_make_target.sh
+    args: ["run-osg-format-test"]
+    timeout_s: 60
+  - id: p3-osg-loader-crosscheck-test
+    type: unit
+    script: gates/run_make_target.sh
+    args: ["run-osg-loader-crosscheck-test"]
+    timeout_s: 120
+  - id: p3-ingest-af-packet-test
+    type: integration
+    script: gates/run_make_target.sh
+    args: ["run-ingest-af-packet-test"]
+    timeout_s: 120
+  - id: p3-harness-calibrate-test
+    type: unit
+    script: gates/run_make_target.sh
+    args: ["run-harness-calibrate-test"]
+    timeout_s: 60
+  - id: p3-pcap-comparator-test
+    type: unit
+    script: gates/run_make_target.sh
+    args: ["run-pcap-comparator-test"]
+    timeout_s: 60
+  - id: p3-patch-schema-regression-test
+    type: unit
+    script: gates/run_make_target.sh
+    args: ["run-patch-schema-regression-test"]
+    timeout_s: 60

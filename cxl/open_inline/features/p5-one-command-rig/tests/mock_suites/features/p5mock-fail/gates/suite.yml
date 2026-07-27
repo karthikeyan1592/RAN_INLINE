@@ -1,0 +1,11 @@
+schema: oi-p5-suite/2
+phase: p5mock-fail
+feature: p5mock-fail-feature
+compose_overlays:
+  - docker/compose.yml
+gates:
+  - id: p5mock-fail-g1
+    type: unit
+    script: scripts/gate_fail.sh
+    args: []
+    timeout_s: 20

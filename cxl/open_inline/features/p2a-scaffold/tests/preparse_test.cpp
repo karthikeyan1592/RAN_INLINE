@@ -33,12 +33,16 @@ static void check(bool cond, const char* what) {
 // O-RAN version/filter_index, given symbol_id/section_id, nof_prb fixed at 51 (MVP full-band).
 // `vlan_tci`, when nonzero, is written into the tag's TCI field (any value -- this project's
 // classifier accepts any VLAN ID, only the TPID 0x8100 + the EtherType past it are checked; see
-// oi_oran_preparse.cpp's own comment on why VID itself is out of scope here).
+// oi_oran_preparse.cpp's own comment on why VID itself is out of scope here). `udcomphdr_bytes`
+// (default ABSENT, matching every pre-existing call site's frame size unchanged) pads the frame
+// with that many extra zero bytes past the section header, simulating the real ru_emulator wire
+// layout (2026-07-26 fix, see oi_oran_wire_layout.h's header comment).
 static std::vector<uint8_t> make_frame(uint8_t symbol_id, uint16_t section_id = 0,
                                         uint8_t filter_index = 0, bool vlan_tagged = false,
-                                        uint16_t vlan_tci = 1) {
+                                        uint16_t vlan_tci = 1,
+                                        unsigned udcomphdr_bytes = OI_WIRE_UDCOMPHDR_BYTES_ABSENT) {
   uint32_t eth_hdr_len = vlan_tagged ? OI_WIRE_ETH_HEADER_BYTES_TAGGED : OI_WIRE_ETH_HEADER_BYTES_UNTAGGED;
-  std::vector<uint8_t> f(OI_WIRE_TOTAL_HEADER_BYTES(eth_hdr_len), 0);
+  std::vector<uint8_t> f(OI_WIRE_TOTAL_HEADER_BYTES(eth_hdr_len) + udcomphdr_bytes, 0);
 
   if (vlan_tagged) {
     f[OI_WIRE_OFF_VLAN_TPID] = (uint8_t)(OI_WIRE_VLAN_TPID_8021Q >> 8);
@@ -71,18 +75,20 @@ int main() {
   // 1. First frame: no prior symbol, no wrap possible.
   {
     auto frame = make_frame(/*symbol_id=*/2);
-    auto st = oi_oran_preparse_frame(&state, frame.data(), frame.size(), &desc);
+    auto st = oi_oran_preparse_frame(&state, frame.data(), frame.size(), OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc);
     check(st == OI_PREPARSE_OK, "first frame (symbol 2) parses OK");
     check(desc.symbol_id == 2, "first frame symbol_id == 2");
     check(desc.slot_id == 0, "first frame slot_id starts at 0");
     check(desc.eth_hdr_len == OI_WIRE_ETH_HEADER_BYTES_UNTAGGED, "first frame (untagged) eth_hdr_len == 14");
+    check(desc.payload_byte_off == OI_WIRE_TOTAL_HEADER_BYTES(OI_WIRE_ETH_HEADER_BYTES_UNTAGGED),
+          "first frame (untagged, udcomphdr_bytes=ABSENT) payload_byte_off == 30");
   }
 
   // 2. Monotonically increasing symbols within the same slot: no wrap, slot_id unchanged.
   {
     for (uint8_t sym : {7, 11, 13}) {
       auto frame = make_frame(sym);
-      auto st = oi_oran_preparse_frame(&state, frame.data(), frame.size(), &desc);
+      auto st = oi_oran_preparse_frame(&state, frame.data(), frame.size(), OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc);
       check(st == OI_PREPARSE_OK, "increasing-symbol frame parses OK");
       check(desc.slot_id == 0, "slot_id stays 0 while symbol_id increases (no wrap yet)");
     }
@@ -91,7 +97,7 @@ int main() {
   // 3. Wrap (13 -> 0): slot_id must increment exactly once.
   {
     auto frame = make_frame(/*symbol_id=*/0);
-    auto st = oi_oran_preparse_frame(&state, frame.data(), frame.size(), &desc);
+    auto st = oi_oran_preparse_frame(&state, frame.data(), frame.size(), OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc);
     check(st == OI_PREPARSE_OK, "wrap frame (13->0) parses OK");
     check(desc.slot_id == 1, "slot_id increments to 1 exactly once on wrap");
   }
@@ -100,10 +106,10 @@ int main() {
   {
     for (uint8_t sym = 1; sym <= 13; sym++) {
       auto frame = make_frame(sym);
-      oi_oran_preparse_frame(&state, frame.data(), frame.size(), &desc);
+      oi_oran_preparse_frame(&state, frame.data(), frame.size(), OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc);
     }
     auto frame = make_frame(0);
-    oi_oran_preparse_frame(&state, frame.data(), frame.size(), &desc);
+    oi_oran_preparse_frame(&state, frame.data(), frame.size(), OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc);
     check(desc.slot_id == 2, "second full symbol cycle advances slot_id to 2");
   }
 
@@ -112,7 +118,8 @@ int main() {
     oi_frame_desc before = desc;
     std::vector<uint8_t> short_frame(4, 0);
     auto st = oi_oran_preparse_frame(&state, short_frame.data(),
-                                     static_cast<uint32_t>(short_frame.size()), &desc);
+                                     static_cast<uint32_t>(short_frame.size()),
+                                     OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc);
     check(st == OI_PREPARSE_ERR_TRUNCATED, "frame shorter than min header -> ERR_TRUNCATED");
     check(std::memcmp(&before, &desc, sizeof(desc)) == 0,
           "truncated-frame error leaves out_desc unmodified");
@@ -121,7 +128,7 @@ int main() {
   // 6. Malformed symbol_id (>13) -> ERR_MALFORMED.
   {
     auto frame = make_frame(/*symbol_id=*/14);  // out of range (valid: 0-13)
-    auto st = oi_oran_preparse_frame(&state, frame.data(), frame.size(), &desc);
+    auto st = oi_oran_preparse_frame(&state, frame.data(), frame.size(), OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc);
     check(st == OI_PREPARSE_ERR_MALFORMED, "symbol_id==14 (out of 0-13 range) -> ERR_MALFORMED");
   }
 
@@ -131,7 +138,7 @@ int main() {
     oi_oran_preparse_state state2{};
     oi_frame_desc desc2{};
     auto frame = make_frame(5);
-    oi_oran_preparse_frame(&state2, frame.data(), frame.size(), &desc2);
+    oi_oran_preparse_frame(&state2, frame.data(), frame.size(), OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc2);
     check(desc2.slot_id == 0, "a fresh preparse_state starts at slot_id 0 independent of others");
   }
 
@@ -144,7 +151,7 @@ int main() {
     oi_frame_desc desc3{};
     auto frame = make_frame(/*symbol_id=*/9, /*section_id=*/0, /*filter_index=*/0,
                            /*vlan_tagged=*/true, /*vlan_tci=*/1);
-    auto st = oi_oran_preparse_frame(&state3, frame.data(), frame.size(), &desc3);
+    auto st = oi_oran_preparse_frame(&state3, frame.data(), frame.size(), OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc3);
     check(st == OI_PREPARSE_OK, "VLAN-tagged frame parses OK");
     check(desc3.eth_hdr_len == OI_WIRE_ETH_HEADER_BYTES_TAGGED, "VLAN-tagged frame eth_hdr_len == 18");
     check(desc3.symbol_id == 9, "VLAN-tagged frame symbol_id parses correctly past the tag");
@@ -159,7 +166,7 @@ int main() {
     oi_frame_desc desc4{};
     auto frame = make_frame(/*symbol_id=*/3, /*section_id=*/0, /*filter_index=*/0,
                            /*vlan_tagged=*/true, /*vlan_tci=*/42);
-    auto st = oi_oran_preparse_frame(&state4, frame.data(), frame.size(), &desc4);
+    auto st = oi_oran_preparse_frame(&state4, frame.data(), frame.size(), OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc4);
     check(st == OI_PREPARSE_OK, "VLAN-tagged frame with a non-default VID (42) still parses OK");
   }
 
@@ -172,7 +179,7 @@ int main() {
                            /*vlan_tagged=*/true);
     frame[OI_WIRE_OFF_ETHERTYPE_TAGGED] = 0x08;
     frame[OI_WIRE_OFF_ETHERTYPE_TAGGED + 1] = 0x00;  // 0x0800 (IPv4), not 0xAEFE
-    auto st = oi_oran_preparse_frame(&state5, frame.data(), frame.size(), &desc5);
+    auto st = oi_oran_preparse_frame(&state5, frame.data(), frame.size(), OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc5);
     check(st == OI_PREPARSE_ERR_MALFORMED, "802.1Q-tagged frame with wrong post-tag EtherType -> ERR_MALFORMED");
   }
 
@@ -185,8 +192,43 @@ int main() {
     short_tagged[OI_WIRE_OFF_VLAN_TPID] = (uint8_t)(OI_WIRE_VLAN_TPID_8021Q >> 8);
     short_tagged[OI_WIRE_OFF_VLAN_TPID + 1] = (uint8_t)(OI_WIRE_VLAN_TPID_8021Q & 0xFFu);
     auto st = oi_oran_preparse_frame(&state6, short_tagged.data(),
-                                     static_cast<uint32_t>(short_tagged.size()), &desc6);
+                                     static_cast<uint32_t>(short_tagged.size()),
+                                     OI_WIRE_UDCOMPHDR_BYTES_ABSENT, &desc6);
     check(st == OI_PREPARSE_ERR_TRUNCATED, "802.1Q tag present but frame cut short before the real EtherType -> ERR_TRUNCATED");
+  }
+
+  // 12. udcomphdr_bytes=PRESENT (2026-07-26 fix): untagged frame with the real ru_emulator-style
+  // 2-byte udCompHdr+reserved gap present -- payload_byte_off must be 2 bytes past the ABSENT case
+  // (test 1), not just eth_hdr_len + eCPRI/O-RAN header bytes. This is the exact field the real bug
+  // (pcap_comparator/K1 silently assuming ABSENT) got wrong.
+  {
+    oi_oran_preparse_state state7{};
+    oi_frame_desc desc7{};
+    auto frame = make_frame(/*symbol_id=*/4, /*section_id=*/0, /*filter_index=*/0,
+                           /*vlan_tagged=*/false, /*vlan_tci=*/1, OI_WIRE_UDCOMPHDR_BYTES_PRESENT);
+    auto st = oi_oran_preparse_frame(&state7, frame.data(), static_cast<uint32_t>(frame.size()),
+                                     OI_WIRE_UDCOMPHDR_BYTES_PRESENT, &desc7);
+    check(st == OI_PREPARSE_OK, "udcomphdr_bytes=PRESENT, untagged frame parses OK");
+    check(desc7.symbol_id == 4, "udcomphdr_bytes=PRESENT frame symbol_id parses correctly");
+    check(desc7.payload_byte_off == OI_WIRE_TOTAL_HEADER_BYTES(OI_WIRE_ETH_HEADER_BYTES_UNTAGGED) + 2,
+          "udcomphdr_bytes=PRESENT (untagged) payload_byte_off == 32 (2 bytes past the ABSENT case)");
+  }
+
+  // 13. udcomphdr_bytes=PRESENT + VLAN-tagged together (additive, per Step 3's design): matches the
+  // EXACT real byte offset (36) confirmed against real captured wire frames on the GCP VM (18
+  // eth_hdr_len + 8 eCPRI + 8 O-RAN msg/section + 2 udCompHdr/reserved).
+  {
+    oi_oran_preparse_state state8{};
+    oi_frame_desc desc8{};
+    auto frame = make_frame(/*symbol_id=*/6, /*section_id=*/0, /*filter_index=*/0,
+                           /*vlan_tagged=*/true, /*vlan_tci=*/1, OI_WIRE_UDCOMPHDR_BYTES_PRESENT);
+    auto st = oi_oran_preparse_frame(&state8, frame.data(), static_cast<uint32_t>(frame.size()),
+                                     OI_WIRE_UDCOMPHDR_BYTES_PRESENT, &desc8);
+    check(st == OI_PREPARSE_OK, "udcomphdr_bytes=PRESENT + VLAN-tagged frame parses OK");
+    check(desc8.eth_hdr_len == OI_WIRE_ETH_HEADER_BYTES_TAGGED, "udcomphdr_bytes=PRESENT + VLAN-tagged eth_hdr_len == 18");
+    check(desc8.payload_byte_off == 36,
+          "udcomphdr_bytes=PRESENT + VLAN-tagged payload_byte_off == 36 -- matches the exact real "
+          "byte offset confirmed against real captured wire frames on the GCP VM");
   }
 
   std::printf("\n%s\n", g_fail == 0 ? "preparse_test: ALL PASS" : "preparse_test: FAILURES ABOVE");

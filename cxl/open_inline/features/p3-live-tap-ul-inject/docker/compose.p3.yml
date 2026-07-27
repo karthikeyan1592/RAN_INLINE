@@ -1,0 +1,78 @@
+# p3-live-tap-ul-inject — compose overlay (P3-R7/R8/R9, IF-P3-COMPOSE).
+#
+# Fourth compose layer: {upstream/docker-compose.yml} + {p0's compose.sim.yml} +
+# {p1's compose.p1.yml} + this file.
+# Usage: docker compose -f "${UPSTREAM}/docker/docker-compose.yml" -f "${P0_DOCKER}/compose.sim.yml" \
+#          -f "${P1_DOCKER}/compose.p1.yml" -f "${THIS_DIR}/compose.p3.yml" [...]
+#
+# Additive-only, per this project's established layering discipline (P0-R2/P1-R1 precedent):
+#  - ru-emu: switches to the oracle-injection-patched image (built from the patch series against
+#    the pinned OCUDU tag -- NOT the base ocudu/gnb image p1 uses), adds a read-only oracle-file
+#    volume mount, and points its command at a config that layers in the oracle_injection block
+#    (ru_emu_oracle_injection.yml, this feature's own file, additive to p1's ru_emu.yml per
+#    LLD §Configuration -- absence of the block elsewhere still means disabled, P3-R4).
+#  - gpu-phy: joins the `fronthaul` network (compose.sim.yml's own comment already anticipates
+#    this: "p1/p3 add NET_RAW via their own override layered on top of this one") with cap_add
+#    NET_RAW for the af_packet tap (P3-R7), and bind-mounts this feature's OWN locally-built
+#    `build/` directory (M3/M5/M4 binaries) rather than rebuilding the whole gpu-phy image through
+#    OCUDU's multi-stage Dockerfile a second time -- gpu-phy's existing image already has the
+#    PoCL/OpenCL runtime this feature's binaries need; a bind mount is the minimal-effort way to
+#    get real, freshly-built binaries into a running container for a live session, avoiding an
+#    image rebuild + push cycle for what is fundamentally host-built tooling, not a system service.
+#
+# gnb/5gc: untouched, not repeated here (P3-R4/R12 depend on zero config drift from p1).
+
+services:
+  ru-emu:
+    # Built on the GCP VM from patches/0001-oracle-grid-ul-injection.patch applied to a fresh
+    # release_26_04 checkout -- see DEFERRED_LIVE_GATES.md's exact build command. Never the base
+    # ocudu/gnb:latest image (that has no oracle-grid loader).
+    image: ocudu/gnb:oracle-injection
+    volumes:
+      - ${P3_OSG_DIR:?P3_OSG_DIR must be set to the host directory containing slot_0000.osg..slot_0019.osg}:/oracle:ro
+    configs:
+      - ru_emu_oracle_injection.yml
+    # REAL BUG FOUND + FIXED (2026-07-26, `docker compose config` rendering test): compose's
+    # `configs:` list is additive across layers (p1's own ru_emu_config.yml entry stays present,
+    # confirmed in the rendered output), but `command` is a full scalar override, NOT merged --
+    # without this override, ru-emu would have kept running p1's own `-c /ru_emu_config.yml`
+    # (oracle injection absent, silently inert) despite the new config file being mounted right
+    # next to it and simply never read. Must explicitly point at the new file.
+    command: ["ru_emulator", "-c", "/ru_emu_oracle_injection.yml"]
+
+  gpu-phy:
+    networks:
+      fronthaul:
+        mac_address: "02:6f:69:00:01:03"
+    cap_add:
+      - NET_RAW
+    volumes:
+      - ${P3_FEATURE_ROOT:?P3_FEATURE_ROOT must be set to features/p3-live-tap-ul-inject}/build:/oi/p3-build:ro
+      # bit_exact_harness needs the SAME oracle grid set ru-emu injects from, to compare the
+      # decoded TB against (real gap found+fixed 2026-07-26: this mount was only on ru-emu before,
+      # so bit_exact_harness could never find /oracle/slot_NNNN.osg on this side).
+      - ${P3_OSG_DIR:?P3_OSG_DIR must be set to the host directory containing slot_0000.osg..slot_0019.osg}:/oracle:ro
+      # Real gap found+fixed 2026-07-26: oi_p2_host.cpp's kernel .cl paths are CWD-relative
+      # (`../../p2X-.../src/kernels/*.cl`, same documented fragility pipeline_runner.cpp already
+      # has -- see that file's own header comment), so the whole features/ tree must be mounted
+      # with the same sibling layout the host has, not just p3's own build/ output.
+      - ${P3_FEATURE_ROOT:?P3_FEATURE_ROOT must be set}/..:/oi/features:ro
+      # oi_p2_config.cpp hard-requires oracle.sionna_vectors_path to exist on disk (CI-only oracle
+      # harness path, never read for content here) -- mvp_config.yaml pins this to a host-only
+      # placeholder path; mount the same empty placeholder file at the identical absolute path so
+      # the config validator's existence check passes inside the container too.
+      - /tmp/fake_sionna_vectors:/tmp/fake_sionna_vectors:ro
+    working_dir: /oi/features/p2a-scaffold/tests
+    command: ["/oi/p3-build/bit_exact_harness",
+             "/oi/features/p2a-scaffold/tests/fixtures/mvp_config.yaml",
+             "/oracle", "eth0", "20", "${P3_MIN_SLOTS:-1000}", "4", "02:6f:69:00:01:01", "2"]
+
+configs:
+  ru_emu_oracle_injection.yml:
+    # Additive to p1's ru_emu.yml (P1_RU_EMU_CONFIG_PATH) at the YAML level is NOT how compose
+    # `configs:` works (one file per config key, no merge) -- this file is the FULL ru_emu.yml
+    # content (log: + ru_emu: cells: [...]) PLUS the oracle_injection block, not a fragment. See
+    # docker/configs/ru_emu_oracle_injection.yml (this feature's own file, sibling to this compose
+    # file) for the real content; kept as one complete file rather than attempting a YAML-level
+    # merge compose itself doesn't support.
+    file: ${P3_RU_EMU_ORACLE_CONFIG_PATH:?P3_RU_EMU_ORACLE_CONFIG_PATH must be an absolute path (relative paths resolve against the FIRST -f file's directory when compose files are layered -- P1's own documented gotcha, HLD D-notes)}

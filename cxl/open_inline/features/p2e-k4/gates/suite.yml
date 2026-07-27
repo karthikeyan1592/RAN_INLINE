@@ -1,0 +1,12 @@
+schema: oi-p5-suite/2
+phase: p2e
+feature: p2e-k4
+compose_overlays: []
+setup: []
+teardown: []
+gates:
+  - id: p2e-k4-test
+    type: unit
+    script: gates/run_make_target.sh
+    args: ["run-k4"]
+    timeout_s: 180

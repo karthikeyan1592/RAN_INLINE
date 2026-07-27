@@ -1,0 +1,523 @@
+diff --git a/apps/examples/ofh/CMakeLists.txt b/apps/examples/ofh/CMakeLists.txt
+index 04c315b..a5da535 100644
+--- a/apps/examples/ofh/CMakeLists.txt
++++ b/apps/examples/ofh/CMakeLists.txt
+@@ -8,6 +8,7 @@ set_directory_properties(PROPERTIES LABELS "ofh")
+ set (SOURCES
+         ru_emulator_cli11_schema.cpp
+         ru_emulator.cpp
++        ru_emulator_oracle_grid.cpp
+         ru_emulator_rx_window_checker.cpp
+         ru_emulator_socket_transceiver.cpp
+         ru_emulator_timing_notifier.cpp)
+diff --git a/apps/examples/ofh/ru_emulator.cpp b/apps/examples/ofh/ru_emulator.cpp
+index 4493561..906b739 100644
+--- a/apps/examples/ofh/ru_emulator.cpp
++++ b/apps/examples/ofh/ru_emulator.cpp
+@@ -5,6 +5,7 @@
+ #include "helpers.h"
+ #include "ru_emulator_appconfig.h"
+ #include "ru_emulator_cli11_schema.h"
++#include "ru_emulator_oracle_grid.h"
+ #include "ru_emulator_rx_window_checker.h"
+ #include "ru_emulator_seq_id_checker.h"
+ #include "ru_emulator_timing_notifier.h"
+@@ -48,6 +49,12 @@ static constexpr unsigned ETHERNET_FRAME_SIZE = 9000;
+ /// Maximum number of symbols in a slot, considering normal cyclic prefix.
+ static constexpr size_t MAX_NOF_SYMBOLS = get_nsymb_per_slot(cyclic_prefix::NORMAL);
+ 
++/// Slots per radio frame at the pinned MVP numerology (mu=1, 30kHz SCS, TS 38.211 Table
++/// 4.3.2-1) -- used by the oracle-grid schedule formula (p3-live-tap-ul-inject LLD §3.2,
++/// P3-R6). A config-validated constant rather than derived from `slot_point`'s own numerology
++/// helpers is an explicitly acceptable implementation choice per that LLD's Open Question Q5.
++static constexpr unsigned ORACLE_INJECTION_SLOTS_PER_FRAME = 20;
++
+ /// Depending on configured compression parameters one UL U-Plane message may occupy up to 2 Ethernet packets.
+ static constexpr size_t MAX_NOF_PACKETS_PER_UPLANE_MESSAGE = 2;
+ 
+@@ -104,6 +111,8 @@ struct ru_emulator_config {
+   std::vector<unsigned> prach_eaxc;
+   /// PRACH format.
+   ru_emulator_prach_format prach_format;
++  /// Oracle-grid UL U-plane injection configuration (p3-live-tap-ul-inject).
++  ru_emulator_oracle_injection_appconfig oracle_injection;
+ };
+ 
+ /// RU emulator dependencies.
+@@ -223,17 +232,28 @@ static void set_static_header_params(span<uint8_t> frame, header_parameters para
+   frame[34] = octet;
+ }
+ 
++/// Combined Ethernet+eCPRI+OFH header size (bytes) for a UL U-plane frame -- factored out (p3-
++/// live-tap-ul-inject patch) so generate_ul_uplane_messages()'s oracle-injection path can derive
++/// each already-built frame's payload byte range without duplicating this constant.
++static units::bytes ul_uplane_headers_size()
++{
++  const units::bytes ecpri_iq_data_header_size(8);
++  const units::bytes ofh_header_size(10);
++  const units::bytes ether_header_size(18);
++  return ether_header_size + ecpri_iq_data_header_size + ofh_header_size;
++}
++
+ /// Returns pre-generated test data for each symbol for each configured eAxC.
+ static std::vector<eaxc_buffers> generate_test_data(const ru_emulator_config& cfg, span<const unsigned> ul_eaxc)
+ {
+   // Vector of bytes for each frame (up to 2) of each OFDM symbol of each eAxC.
+   std::vector<eaxc_buffers> test_data;
+ 
+   const units::bytes ecpri_iq_data_header_size(8);
+   const units::bytes ofh_header_size(10);
+   const units::bytes ether_header_size(18);
+ 
+   unsigned headers_size = (ether_header_size + ecpri_iq_data_header_size + ofh_header_size).value();
+   // Size in bytes of one PRB using the given static compression parameters.
+   units::bytes prb_size = units::bits(cfg.compr_params.data_width * NOF_SUBCARRIERS_PER_RB * 2 +
+                                       (cfg.compr_params.type == compression_type::BFP ? 8 : 0))
+@@ -475,6 +491,10 @@ class ru_emulator : public frame_notifier
+ 
+   // Pre-generated test data for each symbol for each configured eAxC.
+   std::vector<eaxc_buffers> test_data;
++  // Oracle-grid UL injection state (p3-live-tap-ul-inject). oracle_grids_ is empty and
++  // oracle_injection_active_ is false unless cfg.oracle_injection.enabled -- P3-R4.
++  oracle_grid_set oracle_grids_;
++  bool            oracle_injection_active_ = false;
+   // Pre-generated PRACH data. Depending on the format it may comprise 1 or 12 symbols for each eAxC.
+   std::vector<prach_eaxc_buffers> test_prach;
+   // Number of OFDM symbols comprising PRACH U-Plane transmission.
+@@ -540,6 +560,33 @@ public:
+ 
+     test_data  = generate_test_data(cfg, ul_eaxc);
+     test_prach = generate_test_prach(cfg, prach_eaxc, nof_prach_symbols);
++
++    // Oracle-grid UL injection (p3-live-tap-ul-inject, HLD D1/D4). Absent/disabled config leaves
++    // oracle_injection_active_ false and test_data's random-IQ payload untouched -- P3-R4.
++    if (cfg.oracle_injection.enabled) {
++      // D4: startup validation of iq_format vs the running compression config, not a silent
++      // re-encode (P3-R3). The .osg format is pinned to uncompressed 16-bit (LLD §3.1); any other
++      // ul_compr_method/bitwidth combination is a hard config error here, matching the same
++      // "hard failure over silent wrong behavior" convention P1-R11-style checks already use.
++      if (cfg.compr_params.type != compression_type::none || cfg.compr_params.data_width != 16) {
++        report_error("oracle_injection.enabled=true requires compr_method_ul=none and "
++                     "compr_bitwidth_ul=16 (oracle grid files are uncompressed 16-bit only, "
++                     "P3-R3) -- got type={} bitwidth={}",
++                     (int)cfg.compr_params.type,
++                     cfg.compr_params.data_width);
++      }
++      if (std::find(ul_eaxc.begin(), ul_eaxc.end(), cfg.oracle_injection.eaxc_id) == ul_eaxc.end()) {
++        report_error("oracle_injection.eaxc_id {} is not a member of ul_port_id", cfg.oracle_injection.eaxc_id);
++      }
++      oracle_grid_load_status st =
++          load_oracle_grid_set(span<const std::string>(cfg.oracle_injection.files), &oracle_grids_);
++      if (st != oracle_grid_load_status::ok) {
++        report_error("oracle_injection: failed to load oracle grid set ({} file(s)): {}",
++                     cfg.oracle_injection.files.size(),
++                     oracle_grid_load_status_str(st));
++      }
++      oracle_injection_active_ = true;
++    }
+   }
+ 
+   // See interface for documentation.
+@@ -695,14 +742,69 @@ private:
+     unsigned eaxc_idx    = std::distance(ul_eaxc.begin(), std::find(ul_eaxc.begin(), ul_eaxc.end(), message_info.eaxc));
+     auto&    eaxc_frames = test_data[eaxc_idx];
+ 
++    // Oracle-grid UL injection (p3-live-tap-ul-inject, HLD D1). Patch point: replace the fixed
++    // random-IQ payload copy with a per-invocation copy selected by the deterministic slot->file
++    // schedule (P3-R6), using the same message_info.symbol_point the header logic below already
++    // has in scope -- no new plumbing (HLD D1's own stated rationale for this patch point).
++    bool inject_this_burst = oracle_injection_active_ && message_info.eaxc == cfg.oracle_injection.eaxc_id;
++
++    // Permanent diagnostic (p3-live-tap-ul-inject, added 2026-07-26 after a real live bug: the
++    // oracle_injection.enabled config value can genuinely reach this class active/correct and
++    // STILL never inject a single byte if this condition never evaluates true at runtime --
++    // exactly the failure mode this line exists to make instantly diagnosable instead of a
++    // multi-step live bisection). Rate-limited (first 5 bursts, then every 2000th) to avoid
++    // flooding the log at real burst rates.
++    static unsigned oracle_diag_log_count = 0;
++    if (oracle_diag_log_count < 5 || oracle_diag_log_count % 2000 == 0) {
++      logger.warning("oracle_injection diag: message_info.eaxc={} cfg.eaxc_id={} active_={} inject_this_burst={}",
++                     message_info.eaxc, cfg.oracle_injection.eaxc_id, oracle_injection_active_, inject_this_burst);
++    }
++    oracle_diag_log_count++;
++
+     // Set correct header parameters and send UL U-Plane packets for each symbol.
+     for (unsigned symbol = message_info.symbol_point.get_symbol_index(), end = message_info.nof_symbols; symbol != end;
+          ++symbol) {
+       auto& symbol_frames = eaxc_frames[symbol];
++
++      span<const uint8_t> oracle_symbol_payload;
++      if (inject_this_burst) {
++        oracle_symbol_payload = select_symbol_payload(oracle_grids_,
++                                                       message_info.symbol_point.get_slot().sfn(),
++                                                       message_info.symbol_point.get_slot().slot_index(),
++                                                       ORACLE_INJECTION_SLOTS_PER_FRAME,
++                                                       cfg.oracle_injection.eaxc_id,
++                                                       symbol);
++        if (oracle_diag_log_count <= 5) {
++          logger.warning("oracle_injection diag: sfn={} slot={} symbol={} payload_size={}",
++                         message_info.symbol_point.get_slot().sfn(),
++                         message_info.symbol_point.get_slot().slot_index(),
++                         symbol,
++                         oracle_symbol_payload.size());
++        }
++      }
++      unsigned oracle_byte_offset = 0;
++
+       // Set runtime header parameters.
+       for (auto& frame : symbol_frames) {
+         uint8_t& seq_id = seq_counters[message_info.eaxc];
+         set_runtime_header_params(frame, message_info.symbol_point.get_slot(), symbol, seq_id);
++
++        if (!oracle_symbol_payload.empty()) {
++          // Same offset/length contract fill_random_data() used to occupy
++          // (span<uint8_t>(frame).last(data_size)) -- same call site, same size, different
++          // source (P3-R2). `data_size` is re-derived from this already-built frame's own byte
++          // length rather than re-tracking nof_frame_prbs/start_prb state, since generate_test_
++          // data() already baked the (possible 2-packet) PRB split into each frame's size.
++          unsigned headers_size = ul_uplane_headers_size().value();
++          unsigned data_size    = (unsigned)frame.size() - headers_size;
++          ocudu_assert(oracle_byte_offset + data_size <= oracle_symbol_payload.size(),
++                      "oracle grid symbol payload too small for this frame fragment");
++          std::memcpy(span<uint8_t>(frame).last(data_size).data(),
++                     oracle_symbol_payload.data() + oracle_byte_offset,
++                     data_size);
++          oracle_byte_offset += data_size;
++        }
++
+         frame_burst.emplace_back(frame.data(), frame.size());
+       }
+     }
+@@ -1041,7 +1127,15 @@ int main(int argc, char** argv)
+     emu_cfg.dl_eaxc       = ru_cfg.ru_dl_port_id;
+     emu_cfg.ul_eaxc       = ru_cfg.ru_ul_port_id;
+     emu_cfg.prach_eaxc    = ru_cfg.ru_prach_port_id;
+     emu_cfg.prach_format  = ru_cfg.prach_format;
++    // p3-live-tap-ul-inject (real bug found+fixed 2026-07-26): this conversion previously copied
++    // every OTHER field from ru_cfg to emu_cfg except oracle_injection, silently leaving
++    // emu_cfg.oracle_injection.enabled at its default (false) regardless of the real parsed
++    // config value -- root cause of "config says enabled:true, files present+valid, but
++    // injection never happens." Found via live wire-truth verification (pcap_comparator showing
++    // stock/random IQ, not oracle content) and confirmed via the corrupted-file negative control
++    // (booted clean instead of refusing to start per P3-R3), traced to this exact missing line.
++    emu_cfg.oracle_injection = ru_cfg.oracle_injection;
+ 
+     ru_emulators.push_back(std::make_unique<ru_emulator>(
+         resolve_ru_emulator_dependencies(logger, *workers.ru_emulators_exec[i], *transceivers[i]), emu_cfg));
+diff --git a/apps/examples/ofh/ru_emulator_appconfig.h b/apps/examples/ofh/ru_emulator_appconfig.h
+index 551d244..72132ed 100644
+--- a/apps/examples/ofh/ru_emulator_appconfig.h
++++ b/apps/examples/ofh/ru_emulator_appconfig.h
+@@ -14,6 +14,21 @@ namespace ocudu {
+ /// PRACH formats supported by the RU emulator are: long format 0 and short format B4.
+ enum class ru_emulator_prach_format : uint8_t { LONG_F0, SHORT_B4, NONE };
+ 
++/// Oracle-grid UL U-plane injection configuration (p3-live-tap-ul-inject). Entirely absent from
++/// YAML (or `enabled: false`) leaves every field at its default below, which is functionally
++/// identical to "absent": the random-IQ generator runs unmodified (P3-R4).
++struct ru_emulator_oracle_injection_appconfig {
++  /// Enables oracle-grid UL U-plane payload injection in place of the random-IQ generator.
++  bool enabled = false;
++  /// eAxC ID to inject on; must be a member of ru_ul_port_id (validated at startup).
++  unsigned eaxc_id = 0;
++  /// Ordered list of .osg oracle grid files; schedule position = list index (P3-R6).
++  std::vector<std::string> files;
++  /// Always true at MVP; documents the P3-R3 startup-error-not-silent-reencode invariant, not a
++  /// behavioral toggle (LLD §Configuration).
++  bool fail_on_format_mismatch = true;
++};
++
+ /// RU emulator OFH configuration parameters.
+ struct ru_emulator_ofh_appconfig {
+   /// T2a maximum parameter for downlink Control-Plane in microseconds.
+@@ -52,6 +67,9 @@ struct ru_emulator_ofh_appconfig {
+   unsigned ul_compr_bitwidth = 9;
+   /// PRACH format used when sending dummy PRACH U-Plane packets.
+   ru_emulator_prach_format prach_format = ru_emulator_prach_format::LONG_F0;
++  /// Oracle-grid UL U-plane injection (p3-live-tap-ul-inject, new block; default-absent behavior
++  /// documented on the struct itself, P3-R4).
++  ru_emulator_oracle_injection_appconfig oracle_injection;
+ };
+ 
+ /// RU emulator logging parameters.
+diff --git a/apps/examples/ofh/ru_emulator_cli11_schema.cpp b/apps/examples/ofh/ru_emulator_cli11_schema.cpp
+index 826b813..1337a08 100644
+--- a/apps/examples/ofh/ru_emulator_cli11_schema.cpp
++++ b/apps/examples/ofh/ru_emulator_cli11_schema.cpp
+@@ -148,6 +148,26 @@ static void configure_cli11_ru_emu_args(CLI::App& app, ru_emulator_ofh_appconfig
+                                    "PRACH format. Set to 'long' to use format 0, or 'short' to use format B4")
+       ->default_str(prach_format_to_str(config.prach_format))
+       ->check(check_prach_format);
++
++  // Oracle-grid UL injection section (p3-live-tap-ul-inject, new block). Nested per-cell,
++  // matching the YAML shape `ru_emu: [{..., oracle_injection: {...}}]` (LLD §Configuration).
++  // Absent from a config file -> every field stays at its ru_emulator_oracle_injection_appconfig
++  // default (enabled=false), which is P3-R4's required behavior: identical to upstream.
++  CLI::App* oracle_subcmd =
++      app.add_subcommand("oracle_injection", "Oracle-grid UL U-plane injection configuration (p3-live-tap-ul-inject)")
++          ->configurable();
++  oracle_subcmd->add_option("--enabled", config.oracle_injection.enabled,
++                            "Enable oracle-grid UL U-plane injection in place of the random-IQ generator")
++      ->capture_default_str();
++  oracle_subcmd->add_option("--eaxc_id", config.oracle_injection.eaxc_id,
++                            "eAxC ID to inject on (must be a member of ul_port_id)")
++      ->capture_default_str();
++  oracle_subcmd->add_option("--files", config.oracle_injection.files,
++                            "Ordered list of .osg oracle grid files; schedule position = list index")
++      ->capture_default_str();
++  oracle_subcmd->add_option("--fail_on_format_mismatch", config.oracle_injection.fail_on_format_mismatch,
++                            "Always true at MVP (documents the P3-R3 invariant, not a toggle)")
++      ->capture_default_str();
+ }
+ 
+ void ocudu::configure_cli11_with_ru_emulator_appconfig_schema(CLI::App& app, ru_emulator_appconfig& ru_emu_parsed_cfg)
+diff --git b/apps/examples/ofh/ru_emulator_oracle_grid.cpp b/apps/examples/ofh/ru_emulator_oracle_grid.cpp
+new file mode 100644
+index 0000000..29c32c1
+--- /dev/null
++++ b/apps/examples/ofh/ru_emulator_oracle_grid.cpp
+@@ -0,0 +1,161 @@
++// SPDX-FileCopyrightText: Copyright (C) 2021-2026 Software Radio Systems Limited
++// SPDX-License-Identifier: BSD-3-Clause-Open-MPI
++//
++// ru_emulator_oracle_grid.cpp — see ru_emulator_oracle_grid.h for the format/sharing rationale.
++//
++// CRC32 (IEEE 802.3 / CRC-32/ISO-HDLC, polynomial 0xEDB88320): hand-rolled table-based
++// implementation, not a new external dependency -- this file must stay self-contained to remain
++// upstreamable (HLD D7); the project-side oi_osg_format.cpp uses zlib's crc32() instead (this
++// project's own build already links zlib), but ru_emulator's build should not gain a new required
++// library just for this feature. Standard, textbook reflected-polynomial table generation --
++// same class of "plain, standardized algorithm, safe to write directly" as oracle_tx_gen.cpp's
++// own pcap writer (see that file's header comment for the precedent).
++#include "ru_emulator_oracle_grid.h"
++
++#include <array>
++#include <cstdio>
++#include <fstream>
++
++namespace ocudu {
++
++namespace {
++
++constexpr size_t kFixedHeaderBytes = 48;
++constexpr size_t kTrailerBytes = 4;
++
++uint16_t get_u16le(const uint8_t* p) { return (uint16_t)p[0] | ((uint16_t)p[1] << 8); }
++uint32_t get_u32le(const uint8_t* p) {
++  return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
++}
++uint64_t get_u64le(const uint8_t* p) {
++  uint64_t v = 0;
++  for (int i = 7; i >= 0; i--) v = (v << 8) | p[i];
++  return v;
++}
++
++std::array<uint32_t, 256> make_crc32_table() {
++  std::array<uint32_t, 256> table{};
++  for (uint32_t i = 0; i < 256; i++) {
++    uint32_t c = i;
++    for (int k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320u ^ (c >> 1)) : (c >> 1);
++    table[i] = c;
++  }
++  return table;
++}
++
++uint32_t crc32_ieee(const uint8_t* data, size_t len) {
++  static const std::array<uint32_t, 256> table = make_crc32_table();
++  uint32_t crc = 0xFFFFFFFFu;
++  for (size_t i = 0; i < len; i++) crc = table[(crc ^ data[i]) & 0xFFu] ^ (crc >> 8);
++  return crc ^ 0xFFFFFFFFu;
++}
++
++uint64_t expected_grid_payload_len(uint8_t nof_symbols_per_slot, uint16_t nof_prb) {
++  return (uint64_t)nof_symbols_per_slot * (uint64_t)nof_prb * 12ull * 4ull;
++}
++
++}  // namespace
++
++const char* oracle_grid_load_status_str(oracle_grid_load_status s) {
++  switch (s) {
++    case oracle_grid_load_status::ok: return "ok";
++    case oracle_grid_load_status::err_open: return "could not open file";
++    case oracle_grid_load_status::err_bad_magic: return "bad magic (expected 'OSG1')";
++    case oracle_grid_load_status::err_bad_version: return "unsupported format_version (expected 1)";
++    case oracle_grid_load_status::err_bad_iq_format: return "non-zero iq_format (only uncompressed 16-bit supported)";
++    case oracle_grid_load_status::err_bad_crc32: return "file_crc32 trailer mismatch";
++    case oracle_grid_load_status::err_grid_payload_len_mismatch:
++      return "grid_payload_len_bytes != nof_symbols_per_slot*nof_prb*12*4";
++    case oracle_grid_load_status::err_truncated: return "declared lengths exceed actual file size";
++    case oracle_grid_load_status::err_empty_file_list: return "oracle_injection.files is empty";
++    case oracle_grid_load_status::err_inconsistent_iq_format_across_files:
++      return "not every .osg file in the list declares the same iq_format";
++  }
++  return "unknown oracle_grid_load_status";
++}
++
++oracle_grid_load_status load_oracle_grid_set(span<const std::string> file_list, oracle_grid_set* out) {
++  *out = oracle_grid_set{};
++  if (file_list.empty()) {
++    return oracle_grid_load_status::err_empty_file_list;
++  }
++
++  for (const std::string& path : file_list) {
++    std::ifstream in(path, std::ios::binary | std::ios::ate);
++    if (!in) return oracle_grid_load_status::err_open;
++    std::streamsize size = in.tellg();
++    if (size < (std::streamsize)(kFixedHeaderBytes + kTrailerBytes)) return oracle_grid_load_status::err_truncated;
++    in.seekg(0);
++    std::vector<uint8_t> buf((size_t)size);
++    in.read((char*)buf.data(), size);
++    if (!in) return oracle_grid_load_status::err_open;
++
++    if (!(buf[0] == 'O' && buf[1] == 'S' && buf[2] == 'G' && buf[3] == '1')) {
++      return oracle_grid_load_status::err_bad_magic;
++    }
++    uint16_t format_version = get_u16le(&buf[4]);
++    if (format_version != 1) return oracle_grid_load_status::err_bad_version;
++    uint8_t iq_format = buf[6];
++    if (iq_format != 0) return oracle_grid_load_status::err_bad_iq_format;  // MVP pin, LLD §3.1
++
++    oracle_grid_entry entry{};
++    entry.nof_prb = get_u16le(&buf[8]);
++    entry.nof_symbols = buf[10];
++    entry.eaxc_id = (uint8_t)get_u16le(&buf[12]);
++    entry.tb_len_bytes = get_u64le(&buf[16]);
++    entry.tb_crc_ok = get_u32le(&buf[24]) != 0;
++    entry.rnti = get_u32le(&buf[28]);
++    entry.harq_id = get_u32le(&buf[32]);
++    entry.mcs_index = get_u32le(&buf[36]);
++    uint64_t grid_len = get_u64le(&buf[40]);
++
++    if (grid_len != expected_grid_payload_len(entry.nof_symbols, entry.nof_prb)) {
++      return oracle_grid_load_status::err_grid_payload_len_mismatch;
++    }
++    uint64_t need = kFixedHeaderBytes + grid_len + entry.tb_len_bytes + kTrailerBytes;
++    if (need > (uint64_t)size) return oracle_grid_load_status::err_truncated;
++
++    size_t grid_off = kFixedHeaderBytes;
++    size_t tb_off = grid_off + (size_t)grid_len;
++    size_t crc_off = tb_off + (size_t)entry.tb_len_bytes;
++
++    uint32_t file_crc = get_u32le(&buf[crc_off]);
++    uint32_t computed_crc = crc32_ieee(buf.data(), crc_off);
++    if (file_crc != computed_crc) return oracle_grid_load_status::err_bad_crc32;
++
++    entry.grid_payload.assign(buf.begin() + (long)grid_off, buf.begin() + (long)tb_off);
++    entry.tb_payload.assign(buf.begin() + (long)tb_off, buf.begin() + (long)crc_off);
++
++    out->entries.push_back(std::move(entry));
++  }
++
++  // All files must declare the same iq_format (they all did, checked above -- iq_format==0,
++  // uncompressed 16-bit -- the per-file check above already enforces this implicitly since only
++  // one value is accepted at MVP; this loop confirms nof_prb/nof_symbols consistency too, which
++  // the per-file check does NOT already guarantee).
++  const oracle_grid_entry& first = out->entries.front();
++  for (const auto& e : out->entries) {
++    if (e.nof_prb != first.nof_prb || e.nof_symbols != first.nof_symbols) {
++      return oracle_grid_load_status::err_inconsistent_iq_format_across_files;
++    }
++  }
++  out->iq_format = ofh::ru_compression_params{ofh::compression_type::none, 16};
++  return oracle_grid_load_status::ok;
++}
++
++span<const uint8_t> select_symbol_payload(const oracle_grid_set& grids, unsigned sfn, unsigned slot,
++                                          unsigned slots_per_frame, uint8_t eaxc_id, unsigned symbol_index) {
++  ocudu_assert(!grids.entries.empty(), "select_symbol_payload called with an empty oracle_grid_set");
++  size_t n = grids.entries.size();
++  size_t file_idx = (size_t)(((uint64_t)sfn * slots_per_frame + slot) % n);  // P3-R6, exact rule
++  const oracle_grid_entry& entry = grids.entries[file_idx];
++  // eaxc_id consistency is validated once at config-load time (single-eAxC MVP, LLD §Q3), not
++  // re-checked per call here -- (void) to document the parameter is intentionally unused for that.
++  (void)eaxc_id;
++  size_t symbol_bytes = (size_t)entry.nof_prb * 12u * 4u;
++  size_t offset = (size_t)symbol_index * symbol_bytes;
++  ocudu_assert(offset + symbol_bytes <= entry.grid_payload.size(), "symbol_index out of range for this oracle grid");
++  return span<const uint8_t>(entry.grid_payload).subspan(offset, symbol_bytes);
++}
++
++}  // namespace ocudu
+diff --git b/apps/examples/ofh/ru_emulator_oracle_grid.h b/apps/examples/ofh/ru_emulator_oracle_grid.h
+new file mode 100644
+index 0000000..2312b97
+--- /dev/null
++++ b/apps/examples/ofh/ru_emulator_oracle_grid.h
+@@ -0,0 +1,77 @@
++// SPDX-FileCopyrightText: Copyright (C) 2021-2026 Software Radio Systems Limited
++// SPDX-License-Identifier: BSD-3-Clause-Open-MPI
++//
++// ru_emulator_oracle_grid.h — M2's oracle-grid loader (p3-live-tap-ul-inject, LLD §Public APIs).
++// New file added by the oracle-injection patch series; not present upstream.
++//
++// Reads the ".osg" (Oracle Slot Grid v1) file format, LLD §3.1, byte-precise. This parser is a
++// deliberately independent implementation from open_inline/features/p3-live-tap-ul-inject/src/
++// host/oi_osg_format.h (the project-side writer/reader used by osg_gen and the harness) --
++// ru_emulator becomes its own standalone binary once this patch is built into the OCUDU image,
++// with no dependency on this project's build system (required for the file to be upstreamable as
++// a clean, self-contained OCUDU contribution, HLD D7). The two implementations are kept in sync
++// by construction (both read/write the identical byte layout documented in LLD §3.1) and cross-
++// checked by p3's own test suite (osg_loader_crosscheck_test.cpp): a real .osg file written by
++// oi_osg_format.h's osg_write() is parsed by THIS file's load_oracle_grid_set() and the fields
++// must agree exactly. If LLD §3.1 ever changes, both copies must be updated together.
++#pragma once
++
++#include <cstdint>
++#include <string>
++#include <vector>
++
++#include "ocudu/adt/span.h"
++#include "ocudu/ofh/compression/compression_params.h"
++
++namespace ocudu {
++
++/// One loaded, in-memory oracle grid (LLD §3.1 section 1) plus its sidecar metadata.
++struct oracle_grid_entry {
++  uint16_t nof_prb;
++  uint8_t nof_symbols;
++  uint8_t eaxc_id;
++  std::vector<uint8_t> grid_payload;  // raw wire-format IQ, symbol-major (LLD §3.1 section 1)
++  uint64_t tb_len_bytes;
++  bool tb_crc_ok;
++  uint32_t rnti;
++  uint32_t harq_id;
++  uint32_t mcs_index;
++  std::vector<uint8_t> tb_payload;    // ground truth; ru_emulator's TX path never reads this
++};
++
++/// Loaded once at ru_emulator startup, from the config's oracle_injection.files list.
++struct oracle_grid_set {
++  std::vector<oracle_grid_entry> entries;   // ordered, index = schedule position (P3-R6)
++  ofh::ru_compression_params iq_format;          // parsed from entries[0], validated equal across all entries
++};
++
++enum class oracle_grid_load_status {
++  ok = 0,
++  err_open,
++  err_bad_magic,
++  err_bad_version,
++  err_bad_iq_format,
++  err_bad_crc32,
++  err_grid_payload_len_mismatch,
++  err_truncated,
++  err_empty_file_list,
++  err_inconsistent_iq_format_across_files,
++};
++
++const char* oracle_grid_load_status_str(oracle_grid_load_status s);
++
++/// Parses+validates every file in `file_list` (magic, version, CRC32 trailer, iq_format
++/// consistency across all files, grid_payload_len == nof_symbols*nof_prb*12*4 for the pinned
++/// uncompressed 16-bit format). Returns a non-ok status (not partial success) on any malformed
++/// file (P3-R2/R3, LLD §Error handling) -- `*out` is left empty on failure. An empty `file_list`
++/// is itself an error (err_empty_file_list): P3-R2 requires `oracle_injection.enabled: true` to
++/// always have at least one file; the modulo schedule (P3-R6) is undefined for N==0.
++oracle_grid_load_status load_oracle_grid_set(span<const std::string> file_list, oracle_grid_set* out);
++
++/// select_symbol_payload: the per-burst patch point call (LLD §Public APIs).
++/// file_idx = (sfn * slots_per_frame + slot) mod grids.entries.size()   -- P3-R6, exact rule
++/// returns entries[file_idx].grid_payload sliced to [symbol_index]'s byte range.
++span<const uint8_t> select_symbol_payload(const oracle_grid_set& grids, unsigned sfn, unsigned slot,
++                                          unsigned slots_per_frame, uint8_t eaxc_id, unsigned symbol_index);
++
++}  // namespace ocudu

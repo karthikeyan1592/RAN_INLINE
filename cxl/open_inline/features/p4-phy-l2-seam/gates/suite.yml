@@ -1,0 +1,37 @@
+schema: oi-p5-suite/2
+phase: p4
+feature: p4-phy-l2-seam
+compose_overlays:
+  - docker/compose.p4.yml
+compose_env:
+  GNB_CONFIG_PATH: "{root}/features/p1-ran-baseline/docker/configs/gnb_ofh_testmode.yml"
+  P1_RU_EMU_CONFIG_PATH: "{root}/features/p1-ran-baseline/docker/configs/ru_emu.yml"
+  P4_FEATURE_ROOT: "{feature_root}"
+setup: []
+teardown: []
+gates:
+  - id: p4-struct-layout-test
+    type: unit
+    script: gates/run_make_target.sh
+    args: ["run-struct-layout-test"]
+    timeout_s: 60
+  - id: p4-producer-test
+    type: unit
+    script: gates/run_make_target.sh
+    args: ["run-producer-test"]
+    timeout_s: 60
+  - id: p4-ordering-test
+    type: unit
+    script: gates/run_make_target.sh
+    args: ["run-ordering-test"]
+    timeout_s: 60
+  - id: p4-wrap-test
+    type: unit
+    script: gates/run_make_target.sh
+    args: ["run-wrap-test"]
+    timeout_s: 60
+  - id: p4-restart-test
+    type: unit
+    script: gates/run_make_target.sh
+    args: ["run-restart-test"]
+    timeout_s: 60

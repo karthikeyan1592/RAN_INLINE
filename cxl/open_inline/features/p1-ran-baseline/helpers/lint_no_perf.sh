@@ -22,7 +22,7 @@ while IFS= read -r -d '' f; do
     HITS=$((HITS + 1))
   fi
 done < <(find "$FEATURE_ROOT" \
-          \( -path "*/docker/*" -o -path "*/helpers/*" -o -path "*/tests/*" -o -path "*/tools/*" \) \
+          \( -path "*/docker/*" -o -path "*/helpers/*" -o -path "*/tests/*" -o -path "*/tools/*" -o -path "*/gates/*" \) \
           -type f \( -name "*.sh" -o -name "*.py" -o -name "*.yml" -o -name "*.yaml" -o -name "*.cpp" \) \
           -not -name "lint_no_perf.sh" -print0 2>/dev/null)
 

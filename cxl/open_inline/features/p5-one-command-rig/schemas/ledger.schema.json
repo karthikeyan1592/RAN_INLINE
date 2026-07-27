@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "oi-p5-ledger/1",
+  "title": "IF-P5-LEDGER: oi-p5-ledger/1",
+  "type": "object",
+  "required": [
+    "schema", "run_id", "started_utc", "finished_utc", "tier", "host",
+    "pins_digest", "rigcfg_digest", "phases", "overall", "performance_claims",
+    "honesty_notes"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "oi-p5-ledger/1"},
+    "run_id": {"type": "string"},
+    "started_utc": {"type": "string"},
+    "finished_utc": {"type": "string"},
+    "tier": {"type": "string", "enum": ["sim", "physical"]},
+    "host": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": {"type": "string", "enum": ["wsl2", "gcp"]},
+        "kernel": {"type": "string"},
+        "n2_standard_16": {"type": "boolean"}
+      }
+    },
+    "pins_digest": {"type": "string"},
+    "rigcfg_digest": {"type": "string"},
+    "phases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["phase", "feature", "discovered", "gates"],
+        "additionalProperties": false,
+        "properties": {
+          "phase": {"type": "string"},
+          "feature": {"type": "string"},
+          "discovered": {"type": "boolean"},
+          "not_discovered_reason": {"type": "string"},
+          "validation_error": {"type": "string"},
+          "skipped": {
+            "type": "boolean",
+            "description": "true iff --only-phase excluded this discovered phase's gates from invocation (Q3(a): overlay still brought up, gates simply not run)"
+          },
+          "gates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "type", "status", "exit_code", "duration_s", "artifacts"],
+              "additionalProperties": false,
+              "properties": {
+                "id": {"type": "string"},
+                "type": {"type": "string", "enum": ["unit", "integration"]},
+                "status": {
+                  "type": "string",
+                  "enum": ["PASS", "FAIL", "ERROR", "BLOCKED", "TIMEOUT"]
+                },
+                "exit_code": {"type": ["integer", "null"]},
+                "duration_s": {"type": "number"},
+                "verdict": {"type": ["object", "null"]},
+                "artifacts": {"type": "string"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "overall": {"type": "string", "enum": ["PASS", "FAIL", "BLOCKED", "INCOMPLETE"]},
+    "performance_claims": {"type": "array", "items": {}, "maxItems": 0},
+    "honesty_notes": {"type": "array", "items": {"type": "string"}}
+  }
+}

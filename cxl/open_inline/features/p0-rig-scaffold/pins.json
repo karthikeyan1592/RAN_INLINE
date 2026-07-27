@@ -1,13 +1,13 @@
 {
   "schema": "oi-pins/1",
-  "built_utc": "2026-07-25T17:29:04Z",
+  "built_utc": "2026-07-26T19:15:55Z",
   "ocudu": {"repo": "https://gitlab.com/ocudu/ocudu", "tag": "release_26_04", "sha": "050a2bb72e1d794cd60570d809987c1fcda3e54b"},
   "base_image": {"name": "ubuntu:24.04", "digest": "unknown"},
   "pocl": {"source": "apt", "version": "5.0-2.1build3"},
   "adaptivecpp": {"repo": "https://github.com/AdaptiveCpp/AdaptiveCpp", "tag": "v25.10.0"},
   "ldpc_suite": {"origin": "cxl_ran_poc/gpu_daemon/ldpc_cl", "sha": "80da3ca361ad3eb9a31190149cf2d16ab963329fc1f6e2a8f29cd5de4b02d1a6"},
   "images": [
-    {"name": "oi/gpu-phy", "digest": "oi/gpu-phy@sha256:f02078ca237cc58fe01403d6d77cfb25b8147af6043386dfd17fbed5588716bf"},
-    {"name": "oi/oracle", "digest": "oi/oracle@sha256:9f680ca63f6ba9eca34ed9022eec3fcaca2ce5862accb543d94e634eaed62f03"}
+    {"name": "oi/gpu-phy", "digest": "oi/gpu-phy@sha256:f2f1ac883220c8b11ff9f5ec4c1487224438ab1b7eee5943dea4d98bc5ac2a07"},
+    {"name": "oi/oracle", "digest": "oi/oracle@sha256:25b31523233fd4d87792e7651ec8ad25cbe165d118b4547d804d9c8cd5d55b59"}
   ]
 }

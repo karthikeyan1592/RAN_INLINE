@@ -1,0 +1,4 @@
+services:
+  mock-blocked-svc:
+    image: busybox:latest
+    command: ["sleep", "infinity"]

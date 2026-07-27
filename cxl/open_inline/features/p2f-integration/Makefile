@@ -85,9 +85,9 @@ build/ldpc_decode_test: tests/ldpc_decode_test.cpp src/host/oi_p2_ldpc_decode.cp
 	$(CXX) $(CXXFLAGS) tests/ldpc_decode_test.cpp src/host/oi_p2_ldpc_decode.cpp \
 	  $(OCUDU_LIBS) $(LDFLAGS) -o $@
 
-build/oracle_tx_gen: tools/oracle_tx_gen.cpp src/host/oi_p2_cb_segment.cpp src/host/oi_p2_crc.cpp \
+build/oracle_tx_gen: tools/oracle_tx_gen.cpp src/host/oi_oracle_pack.cpp src/host/oi_p2_cb_segment.cpp src/host/oi_p2_crc.cpp \
                     $(P2D_HOST)/oi_dmrs_ref_seq.cpp $(P2B_HOST)/oi_p2_gold_init.cpp check-ocudu | build
-	$(CXX) $(CXXFLAGS) tools/oracle_tx_gen.cpp src/host/oi_p2_cb_segment.cpp src/host/oi_p2_crc.cpp \
+	$(CXX) $(CXXFLAGS) tools/oracle_tx_gen.cpp src/host/oi_oracle_pack.cpp src/host/oi_p2_cb_segment.cpp src/host/oi_p2_crc.cpp \
 	  $(P2D_HOST)/oi_dmrs_ref_seq.cpp $(P2B_HOST)/oi_p2_gold_init.cpp $(ORACLE_LIBS) $(LDFLAGS) -o $@
 
 run-cb-segment: build/cb_segment_test

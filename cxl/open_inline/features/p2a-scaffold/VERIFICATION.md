@@ -150,6 +150,59 @@ proving K1 genuinely used the dynamic offset rather than a hardcoded 14. Full p2
 sweep (every p2a-p2f test suite + `lint_portability`/`provenance_check`/`lint_no_perf`) re-run
 clean after this change — see `../p2c-k1/VERIFICATION.md` for that slice's own record.
 
+## udCompHdr compression-header offset: `payload_byte_off` added (2026-07-26, driven by p3 live gate)
+
+**Trigger**: p3's P3-I1 live gate (`bit_exact_harness`/`pcap_comparator` against a real GCP capture)
+hit a calibration failure that survived two earlier real fixes (busy-loop backoff, an OCUDU-patch
+config-conversion bug — see p3's own VERIFICATION.md). A direct raw-byte search independently
+proved the correct oracle payload WAS present, byte-for-byte, in the real captured traffic —
+injection was correct. Hex-dumping the real captured frame at the byte offset this shared code
+assumed the payload started found the real IQ payload begins 2 bytes LATER than
+`OI_WIRE_TOTAL_HEADER_BYTES(eth_hdr_len)` computes, on every real RU-sourced frame checked.
+
+**Root cause** (confirmed by reading the real OCUDU source, not guessed): OCUDU has two U-plane
+message builder classes — `ofh_uplane_message_builder_static_compression_impl::
+serialize_compression_header` (`ofh_uplane_message_builder_static_compression_impl.cpp:9-14`) writes
+**0 bytes** ("the udCompHdr and reserved fields are absent"), which is what this project's
+`oi_oran_wire_layout.h`/`oi_oran_preparse_frame` had always assumed (and what `k1_test.cpp`'s own
+fixtures use, via `create_static_compr_method_ofh_user_plane_packet_builder` — so every existing
+local test agreed with itself, but never against the OTHER real builder). The dynamic-compression
+counterpart (`ofh_uplane_message_builder_dynamic_compression_impl::serialize_compression_header`,
+`ofh_uplane_message_builder_dynamic_compression_impl.cpp:10-23`) writes **2 bytes**: 1-byte
+`data_width<<4 | compression_type` + 1 reserved byte. `apps/examples/ofh/ru_emulator.cpp`'s own
+hand-rolled frame construction (upstream OCUDU example code, `ru_emulator.cpp:195-244` — this
+project's real SIM-tier RU emulator) unconditionally uses the 2-byte layout, regardless of
+`ul_compr_method` config. Confirmed byte-for-byte against **two independent real corpora**: p3's
+live oracle-injection capture (none/16 config, gap bytes `0x00 0x00`) and this repo's own
+`artifacts/p1/pcaps/20260725T180323Z` (bfp/9 config, **163,268/163,268** real UL frames matched,
+gap bytes `0x91 0x00` = `(9<<4)|1` exactly as predicted).
+
+**Fix** (same "one parser decides" precedent as the `eth_hdr_len`/VLAN fix above):
+- `oi_frame_desc` gains `uint8_t payload_byte_off` (the fully-resolved absolute IQ-payload byte
+  offset, folding in both `eth_hdr_len` and the new fact below) — another 1 of the `reserved`
+  bytes, which shrinks from `[7]` to `[6]`; struct size unchanged (`static_assert(sizeof(...)==32)`
+  still holds).
+- `oi_oran_wire_layout.h` gains `OI_WIRE_UDCOMPHDR_BYTES_ABSENT`/`_PRESENT` (0/2) and
+  `OI_WIRE_PAYLOAD_OFFSET(eth_len, udcomphdr_bytes)`.
+- `oi_oran_preparse_frame` gains a new required `udcomphdr_bytes` parameter — an explicit,
+  caller-supplied fact, deliberately **not** autodetected from the frame's own bytes (unlike VLAN
+  detection above): the 2 candidate bytes read as `0x00 0x00` for the none/16 config, so "present
+  with zero content" and "absent" are indistinguishable by content alone. Every real caller
+  (`bit_exact_harness`, `pcap_comparator`, `gpu_phy_seam_bridge`, `pipeline_runner`, every test)
+  updated to pass it explicitly.
+- K1's kernel (`p2c-k1/src/kernels/k1_depacketizer.cl`) now reads `desc.payload_byte_off` directly
+  instead of re-deriving `OI_WIRE_TOTAL_HEADER_BYTES(desc.eth_hdr_len)` itself — it never re-derived
+  compression mode on-device even before this fix (there was no mode to re-derive; that was the
+  bug), and continues not to now.
+
+**Verified**: `tests/preparse_test.cpp` extended with 2 new cases (`udcomphdr_bytes` ABSENT and
+PRESENT, the latter combined with VLAN-tagged too — `payload_byte_off == 36`, matching the exact
+real byte offset found on the wire) — **31/31 assertions pass**. `../p2c-k1/tests/k1_test.cpp`
+extended with a full dynamic-compression round-trip case using the REAL OCUDU dynamic builder AND
+decoder (not hand-inserted padding) plus a negative control — see `../p2c-k1/VERIFICATION.md` for
+that slice's own record. Full p2 re-verification sweep (every p2a-p2f test suite +
+`lint_portability`/`provenance_check`/`lint_no_perf`) re-run clean after this change.
+
 ## Stub chain stage count: 7 -> 8 (2026-07-22, driven by p2d-k2-k3)
 
 `oi_p2_host.cpp`'s `oi_p2_launch_slot` stub kernel chain grew from 7 to 8 stages: p2d-k2-k3 split

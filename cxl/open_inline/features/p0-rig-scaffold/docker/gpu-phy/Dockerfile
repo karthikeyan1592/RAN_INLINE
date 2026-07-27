@@ -105,6 +105,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       llvm-17-runtime libclang-cpp17t64 clang-17 libomp5-17t64 \
       libboost-context1.83.0 libboost-fiber1.83.0 \
       ca-certificates \
+      libyaml-cpp0.8 zlib1g \
     && rm -rf /var/lib/apt/lists/*
 
 ENV OI_CL_PLATFORM=pocl

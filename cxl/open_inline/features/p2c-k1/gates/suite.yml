@@ -1,0 +1,12 @@
+schema: oi-p5-suite/2
+phase: p2c
+feature: p2c-k1
+compose_overlays: []
+setup: []
+teardown: []
+gates:
+  - id: p2c-k1-test
+    type: unit
+    script: gates/run_make_target.sh
+    args: ["run-k1"]
+    timeout_s: 180

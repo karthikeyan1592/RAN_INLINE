@@ -1,0 +1,17 @@
+schema: oi-p5-suite/2
+phase: p2a
+feature: p2a-scaffold
+compose_overlays: []
+setup: []
+teardown: []
+gates:
+  - id: p2a-host-api-test
+    type: unit
+    script: gates/run_make_target.sh
+    args: ["run-host-api"]
+    timeout_s: 120
+  - id: p2a-preparse-test
+    type: unit
+    script: gates/run_make_target.sh
+    args: ["run-preparse"]
+    timeout_s: 120

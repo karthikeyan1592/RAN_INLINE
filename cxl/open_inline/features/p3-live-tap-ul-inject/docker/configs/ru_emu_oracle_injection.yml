@@ -1,0 +1,56 @@
+# p3-live-tap-ul-inject — ru_emulator config WITH oracle injection enabled (P3-R2/R3/R4).
+# Full content, not a fragment (docker compose `configs:` has no YAML-merge mechanism) -- based on
+# p1-ran-baseline/docker/configs/ru_emu.yml (real, verified-working field names/shape), additively
+# extended with the oracle_injection block. Real field names/nesting cross-checked against the
+# patched schema directly via tests/patch_schema_regression_test.cpp (ALL PASS, 2026-07-26) --
+# not copied from this feature's own LLD draft without verification.
+#
+# P3-R3 pin: compr_method_ul/compr_bitwidth_ul MUST be none/16 (uncompressed) to match the .osg
+# format's own pinned iq_format -- a mismatch is the patch's own startup error (D4), not silently
+# re-encoded. This is DIFFERENT from p1's own ru_emu.yml, which uses the upstream default (bfp/9)
+# since P1 never exercises oracle injection.
+
+log:
+  filename: stdout
+  level: warning   # matches p1's own real-GCP-run finding (info floods this container's log)
+
+ru_emu:
+  cells:
+    - network_interface: eth0
+      ru_mac_addr: "02:6f:69:00:01:01"
+      du_mac_addr: "02:6f:69:00:01:02"
+      vlan_tag: 1
+      bandwidth: 20
+      compr_method_ul: none        # P3-R3 pin -- NOT p1's bfp/9 default, see file header
+      compr_bitwidth_ul: 16
+      ul_port_id: [0]
+      dl_port_id: [0]
+      prach_port_id: [4]
+      enable_promiscuous: false
+      oracle_injection:
+        enabled: true
+        eaxc_id: 0                  # must be a member of ul_port_id above
+        files:                      # exactly 20 entries (slots_per_frame, mu=1) -- osg_gen's own
+                                    # DMRS-safety invariant (see tools/osg_gen.cpp header): N must
+                                    # equal slots_per_frame, not an arbitrary count.
+          - /oracle/slot_0000.osg
+          - /oracle/slot_0001.osg
+          - /oracle/slot_0002.osg
+          - /oracle/slot_0003.osg
+          - /oracle/slot_0004.osg
+          - /oracle/slot_0005.osg
+          - /oracle/slot_0006.osg
+          - /oracle/slot_0007.osg
+          - /oracle/slot_0008.osg
+          - /oracle/slot_0009.osg
+          - /oracle/slot_0010.osg
+          - /oracle/slot_0011.osg
+          - /oracle/slot_0012.osg
+          - /oracle/slot_0013.osg
+          - /oracle/slot_0014.osg
+          - /oracle/slot_0015.osg
+          - /oracle/slot_0016.osg
+          - /oracle/slot_0017.osg
+          - /oracle/slot_0018.osg
+          - /oracle/slot_0019.osg
+        fail_on_format_mismatch: true

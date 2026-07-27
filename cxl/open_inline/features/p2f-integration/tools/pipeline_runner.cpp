@@ -13,6 +13,11 @@
 // (this binary) that only ever calls oi_p2_setup/feed/launch_slot/drain/tap/teardown -- the exact
 // same sequence p3's live-tap ingest_backend will call once it exists -- switching this binary's
 // pcap-file input for a live capture requires no change to any call it makes into oi_p2_host.h.
+//
+// <udcomphdr_bytes> (added 2026-07-26, see oi_oran_wire_layout.h's header comment): 0 for class-b
+// oracle-packed pcaps (oracle_tx_gen.cpp uses the STATIC OCUDU builder), 2 for class-a P1-captured
+// pcaps (the real ru_emulator always uses the DYNAMIC builder's wire layout) -- this binary never
+// guesses which; pipeline_test.py passes the correct value per class.
 #ifndef CL_TARGET_OPENCL_VERSION
 #define CL_TARGET_OPENCL_VERSION 120
 #endif
@@ -27,6 +32,7 @@
 
 #include "../../p2a-scaffold/src/host/oi_frame_desc.h"
 #include "../../p2a-scaffold/src/host/oi_oran_preparse.h"
+#include "../../p2a-scaffold/src/host/oi_oran_wire_layout.h"
 #include "../../p2a-scaffold/src/host/oi_p2_host.h"
 
 namespace {
@@ -67,13 +73,19 @@ bool read_pcap(const std::string& path, std::vector<std::vector<uint8_t>>* out_f
 }  // namespace
 
 int main(int argc, char** argv) {
-  if (argc < 4) {
-    std::fprintf(stderr, "usage: pipeline_runner <config_yaml> <pcap_path> <mcs_index>\n");
+  if (argc < 5) {
+    std::fprintf(stderr, "usage: pipeline_runner <config_yaml> <pcap_path> <mcs_index> <udcomphdr_bytes 0|2>\n");
     return 2;
   }
   std::string config_yaml = argv[1];
   std::string pcap_path = argv[2];
   uint32_t mcs_index = (uint32_t)std::atoi(argv[3]);
+  int udcomphdr_bytes_arg = std::atoi(argv[4]);
+  if (udcomphdr_bytes_arg != (int)OI_WIRE_UDCOMPHDR_BYTES_ABSENT && udcomphdr_bytes_arg != (int)OI_WIRE_UDCOMPHDR_BYTES_PRESENT) {
+    std::fprintf(stderr, "{\"error\": \"invalid udcomphdr_bytes '%s', expected 0 or 2\"}\n", argv[4]);
+    return 2;
+  }
+  uint8_t udcomphdr_bytes = (uint8_t)udcomphdr_bytes_arg;
 
   std::vector<std::vector<uint8_t>> frames;
   if (!read_pcap(pcap_path, &frames)) {
@@ -111,7 +123,7 @@ int main(int argc, char** argv) {
 
   for (auto& frame : frames) {
     oi_frame_desc desc{};
-    oi_preparse_status pst = oi_oran_preparse_frame(&pstate, frame.data(), (uint32_t)frame.size(), &desc);
+    oi_preparse_status pst = oi_oran_preparse_frame(&pstate, frame.data(), (uint32_t)frame.size(), udcomphdr_bytes, &desc);
     if (pst != OI_PREPARSE_OK) {
       // Malformed/truncated frame -> drop, not fatal (same tolerance K1/p3's ingest layer already
       // specify; class-a P1 pcaps may contain frames this MVP's fixed-shape parser rejects).

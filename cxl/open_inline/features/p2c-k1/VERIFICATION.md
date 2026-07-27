@@ -96,3 +96,39 @@ fixed offset), plus a documented caveat that af_packet can deliver VLAN tags out
 and if tagged, whether af_packet delivers it inline or via `PACKET_AUXDATA`) — that's exactly what
 the GCP VM capture (P1's next step) will confirm. The code no longer depends on that answer either
 way.
+
+## udCompHdr compression-header offset (2026-07-26): the GCP capture above found a SECOND real gap
+
+The eth_hdr_len/VLAN question above got its real-world answer once p3's live gate actually ran
+against a real GCP capture — but that same capture surfaced a second, deeper real bug in this
+kernel: `k1_depacketizer.cl` silently assumed the O-RAN U-plane section header is immediately
+followed by IQ data (the OCUDU static-compression builder's layout, `ofh_uplane_message_builder_
+static_compression_impl.cpp:9-14` — 0 bytes for udCompHdr/reserved), matching only the fixtures
+this file's own `k1_test.cpp` builds. Real ru_emulator-sourced frames (this project's actual
+SIM-tier RU emulator, `apps/examples/ofh/ru_emulator.cpp:195-244`) unconditionally use the OCUDU
+dynamic-compression builder's layout instead (`ofh_uplane_message_builder_dynamic_compression_impl.
+cpp:10-23` — 2 extra bytes: `data_width<<4|type` + reserved), confirmed byte-for-byte against two
+independent real corpora (163,268/163,268 real UL frames matched in one of them). Full root-cause
+account, citations, and corpus-validation numbers: `../p2a-scaffold/VERIFICATION.md`'s own
+"udCompHdr compression-header offset" entry (that slice owns `oi_oran_preparse_frame`/
+`oi_frame_desc`/`oi_oran_wire_layout.h`, the shared code this bug actually lived in).
+
+**This kernel's own share of the fix**: `k1_depacketizer.cl` now reads `desc.payload_byte_off`
+(the fully-resolved offset p2a-scaffold's preparse now computes) directly, instead of computing
+`OI_WIRE_TOTAL_HEADER_BYTES(desc.eth_hdr_len)` itself — it still does not re-detect the VLAN tag,
+and now also does not re-derive the compression-header mode; both facts are the host parser's job,
+this kernel only ever obeys the descriptor (same single-source-of-truth reasoning as the VLAN fix
+above).
+
+**Verified**: `tests/k1_test.cpp` extended with a new Test 6 — a full dynamic-compression round-trip
+using the REAL OCUDU dynamic-compression builder AND decoder
+(`create_dynamic_compr_method_ofh_user_plane_packet_builder`/`_decoder`, an authentic OCUDU
+round-trip, not hand-inserted padding), decoded via the real dynamic decoder as ground truth, run
+through the actual `k1_depacketize` kernel on PoCL: bit-exact RE-grid match (mod bf16 storage),
+proving K1 genuinely used `desc.payload_byte_off` rather than the old eth_hdr_len-only offset that
+silently dropped the udCompHdr+reserved bytes. Also includes a negative control (re-parsing the
+same frame with the wrong, pre-fix `udcomphdr_bytes=ABSENT` gives a `payload_byte_off` exactly 2
+bytes short) proving this test would have caught the original bug. **All pre-existing assertions
+(Tests 1-5, the static-compression and VLAN-tagged cases) still pass unchanged** — this is an
+additive second mode, not a replacement. Full p2 re-verification sweep (every p2a-p2f test suite +
+lint/provenance checks) re-run clean after this change.

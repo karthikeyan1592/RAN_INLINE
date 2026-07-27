@@ -11,7 +11,7 @@ and verified against a real oracle/real build, not just written.
 
 ```json
 {
-  "last_updated": "2026-07-25",
+  "last_updated": "2026-07-26",
   "phases": [
     {"id": "p0-rig-scaffold", "status": "partial"},
     {"id": "p1-ran-baseline", "status": "done", "note": "P1-G1 + P1-G2 both fully green for real on a GCP n2-standard-16 VM (run-id 20260725T180323Z): {restarts:0, new_error_lines:0, ngap_stable:true, counters_monotonic:true}, P1-R10 pcap corpus (840,783 frames) archived + pulled back locally; ~15 real bugs found+fixed this session including the pipefail/grep-q SIGPIPE root cause behind the 'docker-logs race' and the real WebSocket-based metrics transport + missing-byte-counter finding that led to switching counters_monotonic to fronthaul NIC sysfs counters"},
@@ -21,10 +21,10 @@ and verified against a real oracle/real build, not just written.
     {"id": "p2c-k1", "status": "done"},
     {"id": "p2d-k2-k3", "status": "done"},
     {"id": "p2e-k4", "status": "done"},
-    {"id": "p2f-integration", "status": "done", "note": "LDPC hookup + CB segmentation + real pipeline wiring + oracle TX generator + pipeline_test.py all done, real CRC pass + TB bit-exact end-to-end for all 3 MVP MCS points; class-a structural gate now also run for real against p1's live-captured corpus (2026-07-25), 27/27 assertions PASS"},
-    {"id": "p3-live-tap-ul-inject", "status": "spec_only"},
-    {"id": "p4-phy-l2-seam", "status": "spec_only"},
-    {"id": "p5-one-command-rig", "status": "spec_only"},
+    {"id": "p2f-integration", "status": "done", "note": "LDPC hookup + CB segmentation + real pipeline wiring + oracle TX generator + pipeline_test.py all done, real CRC pass + TB bit-exact end-to-end for all 3 MVP MCS points; class-a structural gate now also run for real against p1's live-captured corpus (2026-07-25), 29/29 assertions PASS (pipeline_runner.cpp gained a required <udcomphdr_bytes> CLI arg 2026-07-26, see p2a-scaffold's udCompHdr fix)"},
+    {"id": "p3-live-tap-ul-inject", "status": "partial", "note": "M1-M6 all implemented; 157/157 local assertions PASS (grew from 134 across two GCP sessions this date); real GCP session 2026-07-26: ru_emulator patch built+run for real (1 real compile bug found+fixed), gpu-phy/oracle images rebuilt, p1 soak re-verified green; found+fixed a real live throughput bug (BPF filter now also checks src-MAC, dropping DL flood in-kernel), a real config-conversion bug in the patch itself, AND (second pass, same date) two more real bugs chasing the resulting calibration failure -- pcap_comparator had no direction filter (hub-mode capture let it calibrate against a downlink frame), and underneath that a cross-feature udCompHdr compression-header offset bug shared with p2a-scaffold/p2c-k1 (confirmed against 163,268/163,268 real frames in one corpus). Both fixed, both locally regression-tested; P3-U1/U2/I1 full live runs (all fixes applied together) still deferred, exact resume runbook in DEFERRED_LIVE_GATES.md"},
+    {"id": "p4-phy-l2-seam", "status": "partial", "note": "oi_seam ring library + producer + L2 stub all implemented; 81/81 local assertions PASS (P4-G1/G2/G3 all real, incl. real 2nd-thread concurrency for G2); gpu_phy_seam_bridge.c gained a required <udcomphdr_bytes> CLI arg 2026-07-26 (see p2a-scaffold's udCompHdr fix); P4-G4 full integration deferred (needs live rig + gpu-phy's own drain-call-site wiring, LLD Q1 still open)"},
+    {"id": "p5-one-command-rig", "status": "partial", "note": "runner+ledger+lint+comparator all implemented; 63/63 local assertions PASS incl. real docker-compose P5-G1; all 9 real gates/suite.yml addenda shipped for p1/p2a-f/p3/p4 and validated; WSL2 half of P5-G2 run for real 2026-07-27 -- overall: PASS across all 29 real gates (3 real runner bugs found+fixed along the way: compose_env schema addition, missing p0 base overlay, silent teardown failure -- see VERIFICATION.md), archived at artifacts/p5/20260727T021153Z-8a0b784/; GCP half + cross-comparison still deferred (VM unreachable that session, see DEFERRED_LIVE_GATES.md)"},
     {"id": "p6-physical-m1-ingest", "status": "spec_only"}
   ]
 }
@@ -163,8 +163,8 @@ and verified against a real oracle/real build, not just written.
   "status": "done",
   "path": "features/p2a-scaffold",
   "verified": true,
-  "test_assertions_passing": 50,
-  "test_breakdown": {"host_api_test.cpp": 26, "preparse_test.cpp": 24},
+  "test_assertions_passing": 57,
+  "test_breakdown": {"host_api_test.cpp": 26, "preparse_test.cpp": 31},
   "real_bugs_fixed": [
     "find operator-precedence bug in lint_no_perf.sh silently skipped src/ and tests/",
     "oi_p2_host.h claimed C-compatibility it didn't have (<cstddef>/<cstdint> instead of C headers)",
@@ -177,6 +177,9 @@ and verified against a real oracle/real build, not just written.
   ],
   "resolved_2026_07_24": [
     "Q2 Ethernet-layer VLAN handling: oi_frame_desc gains eth_hdr_len (14/18, from a reserved byte, 32-byte layout unchanged); oi_oran_wire_layout.h's offset macros parameterized on eth_len; oi_oran_preparse_frame now detects the real 802.1Q tag per-frame (EtherType at 12, or at 16 if 0x8100 sits at 12) instead of assuming untagged. Triggered by p1's ru_emulator finding (--vlan_tag is CLI::Range(1,65536), no untagged option). preparse_test.cpp extended with 6 new tagged/untagged/negative cases, all pass (24/24 total)."
+  ],
+  "resolved_2026_07_26": [
+    "udCompHdr compression-header offset (cross-feature, driven by p3's live P3-I1 gate hitting a real GCP capture): oi_frame_desc gains payload_byte_off (another reserved byte, 32-byte layout unchanged); oi_oran_preparse_frame gains a required udcomphdr_bytes parameter (0 or 2, explicit/caller-supplied, never content-sniffed -- the 2 candidate bytes read as 0x00 0x00 for the real rig's none/16 config, indistinguishable from 'absent' by content alone). Root cause: OCUDU's static-compression U-plane builder writes 0 bytes for udCompHdr+reserved (what this project always assumed); the dynamic-compression builder writes 2; this project's real RU emulator (apps/examples/ofh/ru_emulator.cpp, upstream OCUDU example code) unconditionally uses the 2-byte layout regardless of config. Confirmed byte-for-byte against two independent real corpora (163,268/163,268 real UL frames matched in one of them). K1's kernel (p2c-k1) now reads desc.payload_byte_off directly instead of re-deriving it. preparse_test.cpp extended with 2 new cases (ABSENT/PRESENT, the latter matching the exact real 36-byte offset found on the wire), 31/31 total."
   ],
   "known_gaps_deferred": [
     "oi_frame_desc::section_id is uint8_t but the real wire field is 12 bits (0-4095) — latent truncation risk, harmless under MVP's single-section-per-frame scope, not fixed (would change the struct's frozen 32-byte layout)",
@@ -224,7 +227,7 @@ and verified against a real oracle/real build, not just written.
   "status": "done",
   "path": "features/p2c-k1",
   "verified": true,
-  "test_assertions_passing": 65,
+  "test_assertions_passing": 73,
   "oracle": "real linked OCUDU ecpri::packet_decoder + ofh::uplane_message_decoder + ofh::uplane_message_builder (encoder+decoder round-trip)",
   "real_bugs_fixed": [
     "oi_frame_desc.h OpenCL-C incompatibility (see p2a entry, found while implementing K1)",
@@ -234,6 +237,9 @@ and verified against a real oracle/real build, not just written.
   ],
   "resolved_2026_07_24": [
     "Q2 Ethernet-layer VLAN question: triggered by p1's ru_emulator finding (--vlan_tag is CLI::Range(1,65536), no untagged option, so the real wire is expected to always carry a tag). Rather than flip the placeholder guess, K1's kernel now reads desc.eth_hdr_len (14 or 18, set by oi_oran_preparse_frame's new real per-frame VLAN detection — see p2a entry) instead of a hardcoded constant. k1_test.cpp extended with a full VLAN-tagged round-trip (real OCUDU encoder+decoder, real PoCL kernel run): bit-exact RE-grid match. p3's LLD updated with a two-branch BPF filter spec note + af_packet PACKET_AUXDATA caveat (not yet implemented — p3 hasn't started). Still open: which branch the live rig actually exercises — that's what the GCP capture confirms, not a code dependency anymore."
+  ],
+  "resolved_2026_07_26": [
+    "udCompHdr compression-header offset (cross-feature, see p2a entry for the shared-code root cause + citations): K1's kernel now reads desc.payload_byte_off directly instead of computing OI_WIRE_TOTAL_HEADER_BYTES(desc.eth_hdr_len) itself, which silently assumed the static-compression (0-byte) builder layout. Real ru_emulator-sourced frames use the dynamic-compression (2-byte) layout unconditionally. k1_test.cpp extended with a new Test 6: a full round-trip using the REAL OCUDU dynamic-compression builder AND decoder (authentic OCUDU round-trip, not hand-inserted padding), bit-exact K1-kernel RE-grid match, plus a negative control. All pre-existing Tests 1-5 (static-compression, VLAN-tagged) still pass unchanged — additive, not a replacement. 73/73 total."
   ],
   "known_gaps_deferred": [
     "oi_frame_desc::section_id truncation risk (see p2a entry)",
@@ -329,6 +335,9 @@ and verified against a real oracle/real build, not just written.
   "done_2026_07_25_class_a": [
     "class-a (P1-captured) gate run for real for the first time, against p1-ran-baseline's real GCP-archived corpus (840,783 frames). Found + fixed 2 real path/scope mismatches: (1) pipeline_test.py's P1_PCAP_DIR pointed at p1-ran-baseline/captures/, a location archive_pcap.sh never writes to -- repointed at the real corpus root artifacts/p1/pcaps/<latest-run-id>/, also fixed to pick up all rotated pcap fragments (fronthaul.pcap, .pcap1, .pcap2, ...) not just literal .pcap-suffixed files; (2) pipeline_runner.cpp's frame-feed loop was implicitly single-slot (reads slot_id from the first frame, never re-checks it) but never stopped at a slot boundary -- a real 30s/850K-frame multi-slot capture just overflowed the arena (OI_P2_ERR_ARENA_OVERFLOW), not an arena-sizing bug. Fixed by bounding the feed to the first slot_id observed (slot demuxing across a live stream is p3's job, not this MVP tool's). Real result: all 6 checks PASS across 3 pcap fragments (pipeline completes + I2-I5 taps readable, no CRC/TB assertion per DEV-044). Full suite re-run: pipeline_test: ALL PASS, 27/27 assertions, exit 0. lint_no_perf.sh re-run clean."
   ],
+  "done_2026_07_26": [
+    "udCompHdr compression-header offset fix (cross-feature, see p2a-scaffold entry for the shared root cause): pipeline_runner.cpp gains a required <udcomphdr_bytes> CLI arg, threaded to oi_oran_preparse_frame. pipeline_test.py passes 0 for class-b (oracle_tx_gen.cpp uses OCUDU's static-compression builder) and 2 for class-a (real ru_emulator-sourced P1 captures always use the dynamic-compression layout). pipeline_test: ALL PASS, 29/29 assertions (21 class-b + 6 class-a across 3 real pcap fragments + 2 P2-R17 -- this feature's own check count was already 29 pre-fix, the '27/27' figure recorded in done_2026_07_25_class_a above was already stale before this session, not a regression this fix caused)"
+  ],
   "not_started": [],
   "known_gaps_deferred": [
     "P2-R1's original 'independent prefix build' design (K1-only, K1-K2, ...) no longer applies now that all 7 kernels wire into one oi_p2_setup call — pipeline_test.py checks the OBSERVABLE contract (I2-I5 taps independently readable) instead, a disclosed scope evolution, not a silent gap"
@@ -343,35 +352,157 @@ and verified against a real oracle/real build, not just written.
 ```json
 {
   "id": "p3-live-tap-ul-inject",
-  "status": "spec_only",
+  "status": "partial",
   "path": "features/p3-live-tap-ul-inject",
-  "implementation_started": false,
+  "files_present": ["spec/SPEC.md", "spec/HLD.md", "spec/LLD.md", "README.md", "VERIFICATION.md",
+                   "src/host/oi_osg_format.{h,cpp}", "src/host/oi_osg_schedule.h",
+                   "src/host/oi_ingest_af_packet.{h,cpp}", "src/host/oi_harness_calibrate.h",
+                   "tools/osg_gen.cpp", "tools/pcap_comparator.cpp", "tools/bit_exact_harness.cpp",
+                   "patches/0001-oracle-grid-ul-injection.patch",
+                   "patches/files/ru_emulator_oracle_grid.{h,cpp}",
+                   "docker/compose.p3.yml", "docker/configs/ru_emu_oracle_injection.yml",
+                   "helpers/run_du_undisturbed_check.sh", "helpers/lint_no_perf.sh",
+                   "tests/osg_format_test.cpp", "tests/osg_loader_crosscheck_test.cpp",
+                   "tests/ingest_af_packet_test.cpp", "tests/harness_calibrate_test.cpp",
+                   "tests/pcap_comparator_test.cpp", "tests/patch_schema_regression_test.cpp",
+                   "Makefile"],
+  "implementation_started": true,
   "spec_updates_made_this_project": [
-    "LLD updated during the oi_p2_feed ABI reconciliation: ingest wrapper now calls the shared oi_oran_preparse_frame() (p2a) instead of bespoke parsing, then calls oi_p2_feed(pipeline, &desc)",
-    "self-corrected an overclaim that p6 'calls too' the same shared helper — corrected to note the p3/p6 push-vs-pull control-flow inversion is a separate, still-open item"
+    "LLD updated during the oi_p2_feed ABI reconciliation (pre-implementation): ingest wrapper calls the shared oi_oran_preparse_frame() (p2a) instead of bespoke parsing, then calls oi_p2_feed(pipeline, &desc)",
+    "2026-07-26 (real build): LLD §Configuration's own YAML example was wrong (same 2 mistakes p1-ran-baseline's ru_emu.yml already found+corrected: flat ru_emu:[...] instead of ru_emu:cells:[...], and wrong field names ru_mac_address/ul_compr_method/ru_ul_port_id instead of the real ru_mac_addr/compr_method_ul/ul_port_id) -- caught by patch_schema_regression_test actually compiling the real patched schema and parsing the LLD's own example verbatim; fixed in LLD.md with the real precedent cited"
   ],
+  "done_2026_07_26": [
+    "LLD Q1 resolved: shared oi_oracle_pack library (p2f-integration/src/host/, TB->grid->wire-IQ-bytes, real OCUDU iq_compression_none_impl::compress() for the byte conversion, not hand-rolled) -- oracle_tx_gen.cpp (p2f) and osg_gen.cpp (p3) both call it; p2f's pipeline_test.py re-run clean (27/27) after extraction, zero drift",
+    ".osg file format (oi_osg_format.{h,cpp}) byte-precise per LLD §3.1, real zlib CRC32; osg_format_test 27/27 PASS incl. real corruption detection + magic/version/iq_format/length validation",
+    "osg_gen.cpp: real design finding (not in the LLD) -- K2a's DMRS c_init depends on the real wire nslot (oi_dmrs_ref_seq.cpp:31), so oracle files MUST be generated one-per-within-frame-slot (N=slots_per_frame=20 exactly), not an arbitrary count, or DMRS-based channel estimation would silently use the wrong reference sequence on every file reuse after the first",
+    "M1/M2 ru_emulator oracle-injection patch (patches/0001-oracle-grid-ul-injection.patch): git apply --check PASS against the pristine pinned checkout (P3-R1, real, re-confirmed multiple times); 3 touched/new files syntax-check clean against real OCUDU headers; loader (ru_emulator_oracle_grid.cpp) compiled as real standalone code + cross-checked against the project-side writer (osg_loader_crosscheck_test, 24/24 PASS, incl. two independent CRC32 implementations agreeing); real CLI11 schema compiled+tested directly (patch_schema_regression_test, 13/13 PASS) proving both P3-R4 (absent block -> disabled, byte-identical to upstream) and P3-R2 (explicit block parses correctly)",
+    "M3 gpu-phy ingest_backend (oi_ingest_af_packet.{h,cpp}): real two-branch VLAN-aware classic BPF filter, PACKET_AUXDATA handling, ring-buffer arena wraparound for continuous multi-slot demux, real counters. ingest_af_packet_test: REAL veth pair + REAL p1 captured corpus (200 frames, VLAN-tagged) + REAL oi_p2_pipeline (PoCL) -- 19/19 PASS. 2 real bugs found+fixed: SO_RCVBUF silently capped by net.core.rmem_max (fixed with SO_RCVBUFFORCE), and a real design bug where frames_seen would always == ethertype_matched with a single filtered socket (fixed with an unfiltered companion socket)",
+    "M4 pcap comparator (tools/pcap_comparator.cpp) + M5 live bit-exact harness (tools/bit_exact_harness.cpp) + M6 DU-undisturbed checker (thin pass-through to p1's soak_stability.sh, unmodified, per LLD's own design): pcap_comparator_test 8/8 PASS (real corruption detection); harness_calibrate_test 43/43 PASS (real reconciliation finding: oi_frame_desc.slot_id is a host-derived counter, NOT the wire's real sfn/slot -- see VERIFICATION.md); bit_exact_harness compile-verified against the real pipeline+ingest, full live run deferred (no rig)",
+    "docker/compose.p3.yml + docker/configs/ru_emu_oracle_injection.yml: real, locally-verified via `docker compose config` layered on top of upstream+p0+p1 -- 1 real bug found+fixed (command override missing, so ru-emu would have silently kept running p1's own config despite the oracle config being mounted)",
+    "Full local test suite: 134/134 assertions PASS across 6 test binaries. Full project regression sweep (p1 ci_p1_static.sh, p2a-p2f incl. pipeline_test.py, all 4 lint tools) re-run clean, no regressions",
+    "RETROACTIVE FIX (found while building p4): the 'all 4 lint tools' regression sweep above had been calling p2a-scaffold's own lint_no_perf.sh, whose find pattern is hardcoded to */p2*/ paths -- it silently scanned ZERO files under p3-live-tap-ul-inject/ every time. Every feature owns its own scoped copy (p1's is the correct precedent); p3 now has helpers/lint_no_perf.sh, run for real: 0 hits across src/docker/helpers/tests/tools/patches",
+    "Live GCP session (same date, later): src-MAC BPF filter fix (oi_ingest_af_packet.h/.cpp, real live CPU-overhead bug -- see VERIFICATION.md), busy-loop-backoff fix (bit_exact_harness.cpp/gpu_phy_seam_bridge.c), and a real config-conversion bug in the OCUDU patch itself (emu_cfg.oracle_injection never copied from the CLI11-parsed struct -- see patch_conversion_regression_test.sh) all found+fixed. ingest_af_packet_test extended to replay the FULL 840,783-frame archived corpus (not a 200-frame sample).",
+    "Live GCP session (same date, second pass): TWO more real bugs found+fixed chasing a calibration failure that survived all fixes above -- a direct raw-byte search proved injection was already correct at the source. (1) pcap_comparator had no direction filter, so a hub-mode-flooded capture let it calibrate against a downlink frame no oracle file could ever match -- fixed with a required <ru_mac> CLI arg + a source-MAC skip before preparse/calibration. (2) the deeper, cross-feature bug underneath (1): the shared oi_oran_wire_layout.h assumed OCUDU's static-compression (0-byte) U-plane builder layout, but this project's real RU emulator unconditionally uses the dynamic-compression (2-byte udCompHdr+reserved) layout -- confirmed byte-for-byte against two independent real corpora (163,268/163,268 frames matched in one). Fixed at the shared-code layer (oi_frame_desc gains payload_byte_off, oi_oran_preparse_frame gains a required udcomphdr_bytes parameter, K1's kernel reads the resolved field directly) -- see p2a-scaffold/p2c-k1 entries for the cross-feature half. pcap_comparator.cpp/bit_exact_harness.cpp/gpu_phy_seam_bridge.c all gained a required <udcomphdr_bytes> CLI arg (2 for the real rig). Full local sweep after both fixes: 157/157 assertions PASS across this feature's own test binaries (grew from 134 -- +23 net new assertions across the src-MAC BPF filter fix, the corpus-replay extension of ingest_af_packet_test, the patch_conversion_regression_test.sh new suite, and this session's direction-filter + udCompHdr-gap regression cases in pcap_comparator_test.cpp). Still deferred: the actual >=1000-slot P3-I1 live re-run with all fixes applied together -- see DEFERRED_LIVE_GATES.md's 'second session log'."
+  ],
+  "environment_blocked": ["P3-U1 (live-capture half)", "P3-U2 (live-rig regression half)", "P3-I1 (full integration)"],
+  "environment_blocked_note": "Every piece each deferred gate exercises has its own real, passing local test (see VERIFICATION.md's module table) -- only the live-rig orchestration itself is deferred (no SCTP/rig on this host). Full runbook with exact commands + pass criteria: DEFERRED_LIVE_GATES.md at repo root.",
   "known_gaps_deferred": [
-    "push-based (p3) vs pull-based (p6) ingest_backend control-flow inversion — flagged, not resolved, needs an explicit decision when either p3 or p6 implementation begins"
+    "push-based (p3) vs pull-based (p6) ingest_backend control-flow inversion — flagged, not resolved, still open (unrelated to this session's work, p6 not built)",
+    "Full patched ru_emulator binary never built locally (needs ocudu_ofh/ocudu_phy_support bootstrap beyond what this session's local testing judged worth the time, since it can't be functionally run without the live rig anyway) -- git apply --check, per-file syntax-check, and the loader/schema modules compiled+tested standalone all real; only the full linked binary is untested locally",
+    "deploy_and_bring_up.sh has no image-override variable yet for the oracle-injection-patched ru-emu image -- flagged directly in DEFERRED_LIVE_GATES.md's P3-U2 entry"
   ]
 }
 ```
 
 ---
 
-## p4-phy-l2-seam / p5-one-command-rig / p6-physical-m1-ingest
+## p4-phy-l2-seam
 
 ```json
 {
-  "phases": [
-    {"id": "p4-phy-l2-seam", "status": "spec_only", "implementation_started": false},
-    {"id": "p5-one-command-rig", "status": "spec_only", "implementation_started": false},
-    {"id": "p6-physical-m1-ingest", "status": "spec_only", "implementation_started": false, "note": "PHYSICAL-tier ingest; shares the same push/pull control-flow open item as p3"}
+  "id": "p4-phy-l2-seam",
+  "status": "partial",
+  "path": "features/p4-phy-l2-seam",
+  "files_present": ["spec/SPEC.md", "spec/HLD.md", "spec/LLD.md", "README.md", "VERIFICATION.md",
+                   "src/oi_seam_ring.h", "src/oi_seam.{h,c}", "src/oi_seam_producer.{h,c}",
+                   "src/oi_l2_validate.{h,c}", "src/l2_stub_main.c",
+                   "docker/compose.p4.yml", "docker/Dockerfile.l2stub",
+                   "helpers/gate_p4_ordering.sh", "helpers/gate_p4_wrap.sh", "helpers/gate_p4_restart.sh",
+                   "helpers/gate_p4_integration.sh", "helpers/lint_no_perf.sh",
+                   "tests/struct_layout_test.c", "tests/producer_test.c", "tests/ordering_test.c",
+                   "tests/wrap_test.c", "tests/restart_test.c", "Makefile"],
+  "implementation_started": true,
+  "done_2026_07_26": [
+    "oi_seam_ring.h byte-precise per LLD §Data structures, _Static_assert-checked at every compile (offsetof/sizeof for every field); OI_SEAM_TB_MAX_BYTES=3457 real, computed value (MCS 21's 27656 tbs_bits / 8, no rounding needed) -- LLD Q3 resolved",
+    "oi_seam.{h,c}: real reserve/publish/wait_status/release/epoch API, real mmap'd MAP_SHARED regular-file backing (P4-R10), bounded spin->yield->nanosleep backoff, ring-buffer wraparound. Two real API deviations from the LLD's literal signatures, both disclosed: oi_seam_open() takes a create flag + returns a status code (LLD didn't specify error surfacing), all real per-file additions documented in VERIFICATION.md",
+    "oi_seam_producer.{h,c}: P4-R12's 1:1 field-mapping from a synthetic p2 record view, sfn=slot_id/slots_per_frame + slot=slot_id%slots_per_frame derivation, tb_size_bytes>OI_SEAM_TB_MAX_BYTES refusal (P4-R14, never truncates)",
+    "oi_l2_validate.{h,c} + l2_stub_main.c: per-key (rnti,harq_id) (sfn,slot) monotonicity validation + CRC verdict counting + epoch-change detection/reset; 0 FAPI/SCF-222 symbols (grep-verified)",
+    "struct_layout_test 33/33 PASS (real memcpy round-trip + every field offset), producer_test 13/13 PASS, ordering_test (P4-G1) 4/4 PASS (real ring, 2-key deliberate cross-key out-of-order completion, per-key monotonicity holds; negative case caught), wrap_test (P4-G2) 13/13 PASS (real 2nd thread, ring genuinely blocks past capacity, resumes correctly), restart_test (P4-G3) 17/17 PASS (both producer-restart epoch-bump and consumer-restart persisted-tail-resume scenarios) -- 80/80 total local assertions",
+    "P4-R4 static check: 0 GPU-API symbols in oi_seam.*/oi_seam_ring.h (real grep). P4-R11 static check: 0 real FAPI/SCF-222 symbols (only this project's own comments mention 'FAPI' to document its absence). P4-R13 lint_no_perf.sh (feature-scoped copy): 0 hits",
+    "Real finding: P4-R3's cited precedent ('CXL PoC's e2e_slot_t') doesn't exist anywhere in cxl_ran_poc/ -- closest real precedent is desc_ring.h's desc_ring_t (same release/acquire discipline, no per-slot status). LLD's own byte layout still authoritative, implemented as specified",
+    "Real finding: dynamic race detectors (ThreadSanitizer: fails outright, known mmap limitation; Helgrind: reports races even after manual ANNOTATE_HAPPENS_BEFORE/AFTER experiments) cannot verify this ring's release/acquire discipline on x86_64, because acquire/release atomics compile to plain load/store instructions on x86 (no fence needed, x86 TSO already provides the ordering) -- indistinguishable from an unsynchronized access to an instruction-level instrumentation tool. Verified instead via static C11 memory-model code review (every non-atomic field write precedes the single release-store; every read follows the matching acquire-load) -- see VERIFICATION.md for the full account",
+    "docker/compose.p4.yml + Dockerfile.l2stub: additive gpu-phy volume mount + new l2-stub service, named/volume-persisted ring (P4-R10)"
+  ],
+  "done_2026_07_26": [
+    "udCompHdr compression-header offset fix (cross-feature, see p2a-scaffold entry for the shared root cause): gpu_phy_seam_bridge.c gains a required <udcomphdr_bytes> CLI arg, threaded through oi_ingest_open_af_packet (p3's module, whose own signature also grew this parameter). Real ru_emulator-sourced frames always need udcomphdr_bytes=2. This binary has no dedicated unit test of its own (correctness is exercised via p3's ingest_af_packet_test + this binary's own compile); local suite unaffected: 81/81 assertions still PASS (struct_layout_test/producer_test/ordering_test/wrap_test/restart_test), 0 regressions -- corrects this entry's own previously-recorded '80/80' figure, which was already stale before this session"
+  ],
+  "environment_blocked": ["P4-G4 (full integration)"],
+  "environment_blocked_note": "Every piece P4-G4 exercises (ring library, producer field-mapping, L2 stub validation) has its own real, passing local test -- only the end-to-end wiring (gpu-phy's own event loop actually calling this feature's producer at its real drain call site, LLD Q1, still open) is untested locally, and needs the live rig regardless. Full runbook: DEFERRED_LIVE_GATES.md.",
+  "known_gaps_deferred": [
+    "LLD Q1 (drain call-site ownership) not resolved -- gpu-phy's own main loop doesn't yet call oi_p2_drain + this feature's producer together; flagged directly in DEFERRED_LIVE_GATES.md's P4-G4 entry as the real first step that run needs",
+    "OI_SEAM_RING_CAPACITY=64 is the LLD's own stated MVP placeholder (Q2), not re-derived from real buffering-depth numbers (p2's HLD §5 double-buffering strategy isn't implementation-fixed yet)"
   ]
 }
 ```
 
-No implementation work done on any of these three. Specs exist (SPEC/HLD/LLD) but have not been
-revisited since the earlier feasibility-research phase of this project.
+---
+
+## p5-one-command-rig
+
+```json
+{
+  "id": "p5-one-command-rig",
+  "status": "partial",
+  "path": "features/p5-one-command-rig",
+  "files_present": ["spec/SPEC.md", "spec/HLD.md", "spec/LLD.md", "README.md", "VERIFICATION.md",
+                   "schemas/suite.schema.json", "schemas/ledger.schema.json",
+                   "helpers/discover_suites.py", "helpers/run_gate.sh", "helpers/ledger_build.py",
+                   "helpers/ledger_render_md.py", "helpers/simtest_runner.py",
+                   "helpers/lint_ledger_no_perf.sh", "helpers/compare_ledgers.sh",
+                   "helpers/lint_no_perf.sh", "Makefile",
+                   "tests/test_discover_suites.py", "tests/test_ledger_build.py",
+                   "tests/test_compare_ledgers.py", "tests/test_p5_g1.py", "tests/mock_suites/**"],
+  "implementation_started": true,
+  "done_2026_07_26": [
+    "IF-P5-SUITE (oi-p5-suite/1) + IF-P5-LEDGER (oi-p5-ledger/1) schemas written and enforced via jsonschema at discovery/build time",
+    "discover_suites.py: globs pX-*/gates/suite.yml (or suite.physical.yml under --tier physical), schema-validates, plus LLD's extra rules (compose_overlays exist, gate ids unique, script exists+executable) -- an invalid/missing manifest is discovered:false with validation_error attached, never a crash (P5-R2/R3/R14)",
+    "run_gate.sh + ledger_build.py: external timeout wrapper (D3, zero change to existing scripts) + PASS/FAIL/ERROR/BLOCKED/TIMEOUT classification, incl. the 'invalid JSON last line forces ERROR regardless of exit code' rule (P5-R4)",
+    "simtest_runner.py: real discover -> merge compose_overlays (root-relative to --root, fixed a bug where it was hardcoded to this repo's own p0 base, which would have broken --root-pointed test runs and silently brought up the real 5GC/gNB stack during unit testing) -> real docker compose up (one merge, one up, one down) -> invoke every discovered gate in phase order -> aggregate -> render -> teardown. Zero feature-specific assertion logic (P5-R15)",
+    "compute_overall: unconditional BLOCKED > FAIL/ERROR > INCOMPLETE > PASS precedence, exactly per LLD Data structures, unit-tested across 8 constructed combinations",
+    "lint_ledger_no_perf.sh (P5-R8 rollup) + compare_ledgers.sh (P5-R9, pins_digest/rigcfg_digest NOT exempted, only host/timestamps/run_id ignored) both implemented and real-tested",
+    "P5-G1 (tests/test_p5_g1.py): full run against tests/mock_suites/ with REAL docker compose (busybox services, real pull, real containers) -- real 4-overlay merge into ONE up, real teardown exactly once, real TIMEOUT from an actual sleep past timeout_s, real overall:BLOCKED via the precedence rule, real --only-phase (Q3(a): overlay still merged, only selected phase's gates invoked) and --keep-up behavior, real lint_ledger_no_perf.sh pass-then-catch. 63/63 total local assertions PASS across all 4 test files (14+20+7+22, grew from 59 after the 2026-07-27 oi-p5-suite/2 schema bump -- see done_2026_07_27 below)",
+    "All 9 real gates/suite.yml addenda shipped: p1-ran-baseline (4 gates, incl. 2 new thin JSON-wrapper scripts for check_sctp.sh/soak_stability.sh which predate the JSON-verdict-line contract and write their precondition JSON to stderr not stdout), p2a-scaffold/p2b-k5-k6/p2c-k1/p2d-k2-k3/p2e-k4/p2f-integration (each phase = one real p2 sub-feature, since p2-phy-kernels itself holds only specs -- a disclosed, additive glob-scope decision, not a spec conflict), p3-live-tap-ul-inject (7 gates incl. a new patch-apply-check wrapper), p4-phy-l2-seam (5 gates) -- all 9 validate discovered:true against the real repo root, and every gate script was also smoke-tested directly against this host's real state (see DEFERRED_LIVE_GATES.md's P5-G2 entry for the itemized real results)",
+    "Retroactive fix: p1's/p3's/p4's own lint_no_perf.sh (and the shared p2a-scaffold copy) didn't scan the new gates/ directories these addenda added -- all 4 extended one line each and re-verified clean (same class of gap already found for p0 and p3's original copy earlier this session)",
+    "Real finding: check_sctp.sh reports sctp=available on this WSL2 host as of this build (contradicting DEFERRED_LIVE_GATES.md's prior 'no SCTP' framing, now corrected there) -- does not change any deferral, since every deferred gate needs the live rig genuinely UP, not just SCTP kernel support"
+  ],
+  "done_2026_07_27": [
+    "make simtest run FOR REAL for the first time (WSL2), after building the missing local images (oi/gpu-phy:dev, oi/oracle:dev, ocudu/gnb:oracle-injection, oi/l2-stub:dev) and p3's real 20-file oracle grid set -- found+fixed 3 real, previously-latent bugs in simtest_runner.py/discover_suites.py itself (none of P5-G1's mock-suite tests could catch them: no real env vars, no real base compose file, no real teardown needed there). (1) oi-p5-suite/2 schema addition: optional compose_env map, each suite.yml declares its own overlays' required env vars via {root}/{feature_root} templates, runner generically merges them -- fixes 'docker compose up FAILED' for every real overlay with a hard-required ${VAR:?...}. (2) p0_base_overlay() -> p0_base_overlays() (plural): was missing the upstream docker-compose.yml that actually defines gnb/5gc's image/build blocks. (3) tear_down() silently swallowed its own failure (no env vars threaded through, same class as (1)) -- a run reporting overall:PASS still left every container running; now logs to stderr on nonzero exit. All 9 gates/suite.yml bumped to schema oi-p5-suite/2; mock-suite test fixtures (test_discover_suites.py, tests/mock_suites/) updated to match, full local suite re-verified 63/63 clean.",
+    "WSL2 half of P5-G2 achieved for real: overall:PASS across all 29 real gates spanning all 9 phases (p1-p4), including p1-soak-stability at its own suite-specced 60s window -- verified via the real JSON output (counters_monotonic:true), not assumed from exit code. Final clean run (artifacts/p5/20260727T021153Z-8a0b784/) also confirmed docker ps -a empty afterward, verifying fix (3) end-to-end. Real finding on the same host, same night (see p1-ran-baseline's own entry): a separately-run, LONGER 600s soak on the same rig DID show a genuine TX stall (ru-emu's own TX_TOTAL/RX_TOTAL stuck at 0) -- the 60s gate genuinely passes, it isn't a shorter window hiding a real failure; the stall is real but appears to develop after roughly a minute, not present at t=0."
+  ],
+  "environment_blocked": ["P5-G2 (GCP half + WSL2/GCP cross-comparison)"],
+  "environment_blocked_note": "The WSL2 half is now genuinely done (see done_2026_07_27 above) -- not blocked on rig readiness anymore. What remains is running the identical make simtest on the GCP VM and cross-comparing via compare_ledgers.sh. Blocked for a different, operational reason as of 2026-07-27: the GCP VM (oi-p1-rig) was stopped (standard cost discipline) at the end of the prior session, and this environment has no gcloud authentication to start it back up (gcloud auth list -> no credentialed accounts; direct SSH to its static IP times out, consistent with it being off). Needs the user to start the VM. Full runbook + exact commands: DEFERRED_LIVE_GATES.md.",
+  "known_gaps_deferred": [
+    "gates/suite.yml only exists for p1/p2a-f/p3/p4 today, matching what's built -- p6's PHYSICAL-tier manifests are p6's own future deliverable, correctly out of scope here",
+    "rigcfg_digest is a real, reproducible SHA-256 over the resolved compose-overlay set's contents but isn't cross-checked against any other value defined elsewhere in the codebase -- its only consumer is compare_ledgers.sh's cross-host equality check"
+  ]
+}
+```
+
+---
+
+## p6-physical-m1-ingest
+
+```json
+{
+  "id": "p6-physical-m1-ingest",
+  "status": "spec_only",
+  "implementation_started": false,
+  "note": "PHYSICAL-tier ingest; shares the same push/pull control-flow open item as p3. No implementation work done; needs the OCI GPU box, out of scope for this session except the optional P6-R1/R2/R3 standalone probe programs, added this session as build-verified-only (no hardware here).",
+  "optional_tail_2026_07_26": {
+    "files_present": ["src/probe01_nic_ident.c", "src/probe02_dmabuf_mr.c",
+                      "src/probe03_rawqp_hostmem.c", "src/Makefile"],
+    "done": [
+      "probe01_nic_ident.c (P6-R1) and probe03_rawqp_hostmem.c (P6-R3): written against this host's REAL installed libibverbs/mlx5dv headers (infiniband/verbs.h, infiniband/mlx5dv.h -- confirmed present, real struct layouts used: ibv_flow_spec_eth, mlx5dv_qp_init_attr, MLX5DV_QP_CREATE_TIR_ALLOW_SELF_LOOPBACK_UC/_MC). Both compile with zero warnings (-Wall -Wextra -std=c11), link against real -libverbs/-lmlx5, and RUN for real on this host -- honestly reporting fail (no RDMA hardware present: MLX5_DEVICES=0, QP_CREATE/FLOW_RULE/LOOPBACK_RX=fail), not faked as passing",
+      "probe02_dmabuf_mr.c (P6-R2): the ibverbs half (ibv_reg_dmabuf_mr, real signature) is real and compiles clean; the GPU-side dmabuf export half is written against the real, documented NVIDIA CUDA driver API / AMD ROCm HSA API function names, guarded behind OI_P6_HAVE_CUDA/OI_P6_HAVE_ROCM (neither defined by the Makefile, since neither SDK is installed here -- no cuda.h/hsa_ext_amd.h found on this host). Disclosed, not hidden: that branch has never been compiled against a real vendor header in this environment; the default (only locally-verified) path is an honestly-labeled stub that reports fail, matching this session's 'build-verified-only, cannot run' scope exactly",
+      "All 3 probes: zero-warning compile + link verified via src/Makefile (make all), each probe's CLI/output contract (RESULT: KEY=value lines, exit 0 iff all its fields are ok) matches LLD's probe CLI table exactly"
+    ],
+    "known_gaps_deferred": [
+      "probe02's GPU-export branch is unbuilt against any real vendor SDK in this environment -- needs a real box with CUDA or ROCm installed to actually build-verify (not just run) that half",
+      "No other p6 work attempted, per this session's explicit instruction to do only P6-R1/R2/R3 and nothing else"
+    ]
+  }
+}
+```
 
 ---
 
