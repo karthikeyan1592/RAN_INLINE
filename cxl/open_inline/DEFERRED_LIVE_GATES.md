@@ -18,6 +18,27 @@ either" instruction. p5's own `p1-check-sctp` gate (see that feature's section b
 genuinely PASSes locally as a result, which is itself evidence supporting this correction, not a
 reason to attempt any of the deferred gates locally.
 
+**UPDATE (2026-07-29): the entire GCP project (`cxl-systems-lab-26`) was deleted**, not just
+`oi-p1-rig` stopped. Billing had been disabled on the project (cause unclear — possibly trial
+credit exhaustion) and a forgotten/leftover disk had been accruing storage cost even with the VM
+stopped; rather than hunt down individual stray resources, the project itself was deleted
+(`gcloud projects delete cxl-systems-lab-26`, confirmed). This means **every "start the VM" step
+below is currently invalid** — there is no VM to start. Recoverable via
+`gcloud projects undelete cxl-systems-lab-26` only within ~30 days of deletion (roughly until
+2026-08-28); after that the project is permanently gone. The user's stated plan is to recreate this
+environment in about a week (~2026-08-05). Whoever resumes this work first needs to: recreate (or undelete) the project, re-enable billing,
+and recreate `oi-p1-rig` as a fresh `gcloud compute instances create` (real gap found writing this
+note: the exact original instance-creation command was never saved to a script or to memory —
+`p1-ran-baseline/helpers/remote_provision.sh` only installs deps ON an already-existing host, it
+does not create one. Known real parameters from this session's own context: zone
+`asia-south2-a`, a reserved static external IP `34.131.123.68` (also gone with the project —
+a fresh instance gets a new IP unless a new static IP is reserved), machine type was an
+n2-standard-16-class box per earlier session notes (16 vCPU) — re-derive/re-confirm the exact
+`gcloud compute instances create` flags rather than assuming these are complete). Once created, run
+`remote_provision.sh` on it, then follow the rsync/bring-up steps below — none of which change,
+they just need a real VM to target again. See the `gcp-cxl-project` memory entry for the parallel
+note (this same project also hosted unrelated CXL PoC nested-KVM work, also gone).
+
 Prereqs for the whole session (once, not per-gate): start the GCP VM (`oi-p1-rig`,
 `asia-south2-a`, project `cxl-systems-lab-26`), confirm SCTP via
 `features/p1-ran-baseline/helpers/check_sctp.sh` (must print `sctp=available`), and rsync this
