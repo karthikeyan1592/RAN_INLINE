@@ -11,8 +11,11 @@ v1 (`ARCHITECTURE.md`) and v2 (`ARCHITECTURE_v2.md`) are kept as-is for history;
 > below) uses standard pinned-memory DMA for the GPU→CPU decoded-bits handoff — no CXL, no exotic
 > hardware, buildable now. **Phase 2** (§11) swaps *that one leg* for a CXL-backed shared region,
 > once Phase 1 is working — validating the original research question ("can CXL serve as an open
-> CPU↔GPU fabric") on real hardware, against a working baseline. Everything else (NIC→GPU ingest,
-> GPU-resident full PHY, split choice, PHY↔L2 seam) is shared by both phases, unchanged.
+> CPU↔GPU fabric") on real hardware, against a working baseline. NIC→GPU ingest, the GPU-resident
+> full PHY, and the split choice are shared by both phases, unchanged. **The PHY↔L2 seam is not** —
+> updated 2026-07-30: Phase 2's CXL region doubles as the delivery path into the real L2/L3 stack
+> (§11), replacing Phase 1's structural-validation stub with a real, application-layer-validated
+> result. See §7/§11.
 > The lookaside GPU-BBDev-PMD idea (v1/v2's near-term deliverable) remains **retired** — not a
 > stepping stone.
 
@@ -170,6 +173,19 @@ dependency, proprietary or otherwise.
   traffic in a bounded spike (≤2 weeks) on the chosen box, fall back to **CPU-staged ingest**
   (NIC→CPU→pinned-buffer→GPU, one extra copy) while keeping the rest of the architecture (GPU-resident
   full PHY) intact — a real but honest degradation, not a blocker to the whole project.
+- **Watch list, found 2026-07-29, not yet acted on:** AMD open-sourced
+  [ROCm/mori](https://github.com/ROCm/mori) (MIT, production-proven — DeepSpeed/SGLang/vLLM) and
+  [ROCm/rocm-xio](https://github.com/ROCm/rocm-xio) (MIT, early-access preview). Real, current
+  evidence that dmabuf-based GPU-VRAM↔RDMA-NIC integration works in production on real AMD
+  hardware — mori explicitly supports **Broadcom Thor2**, the exact NIC vendor this section already
+  landed on as the AMD-pairing fallback. Useful for de-risking "does this primitive work at all,"
+  **but does not solve this section's actual open question**: both are built for RDMA-*verb*
+  traffic (InfiniBand GPUDirect Async, GPU-to-GPU collectives, KV-cache transfer — the AI-inference
+  communication pattern), not for receiving **arbitrary raw Ethernet frames** (eCPRI/O-RAN fronthaul)
+  via a raw-packet QP, which is what this section's own "the contribution" framing is about. Revisit
+  their dmabuf/memory-registration code as a reference once the SIM tier is proven end-to-end
+  (§10 exit criterion) — not before; this is a real, deliberate deferral, not a reason to slow down
+  Phase 1's own current work.
 
 ### 6.3 eCPRI live traffic generation — solved at the component level
 **Good news, verified:** OAI ships a real, production-grade, **DPDK-based** split-7.2/8 fronthaul
@@ -203,11 +219,18 @@ Because GPU now owns the **entire PHY** (not just LDPC), the v1/v2 seam (O-RAN A
 a FEC-*lookaside*-only interface) **no longer applies.** The real seam is a **PHY↔L2 split**
 (how Aerial/cuPHY actually talks to OAI's L2, typically FAPI-style).
 
-- **For our functional/mechanism testing:** define a **simple custom IPC** (shared-memory ring or
-  socket carrying decoded TB + CRC status from the GPU-PHY process to a CPU-L2 process). Sufficient
-  for proving the architecture; avoids the much larger scope of full FAPI compliance.
-- **Production-compliance stretch goal:** a real **SCF FAPI** (or OAI's internal equivalent) split,
-  only if interop with an unmodified L2/OAI-MAC is later required.
+- **For our functional/mechanism testing (Phase 1):** define a **simple custom IPC** (shared-memory
+  ring or socket carrying decoded TB + CRC status from the GPU-PHY process to a CPU-L2 process).
+  Sufficient for proving the architecture; avoids the much larger scope of full FAPI compliance. This
+  is what Phase 1's own honesty ledger (§8) is explicit about: it proves the GPU decoder is bit-exact
+  correct against a *known-answer* reference standing in for a UE transmission — not by delivering
+  that decoded data to a real downstream L2/L3 stack.
+- **Production-compliance goal, now scoped (updated 2026-07-30): folded into Phase 2 (§11).**
+  Rather than a standalone FAPI-compliance stretch goal, this seam gets extended for real once
+  Phase 2's CXL-backed GPU→CPU handoff exists: the CXL region becomes the delivery path for real
+  decoded PHY data into the **real** L2/L3 stack already proven (CPU-only) in Phase 1's SIM baseline
+  — carrying a message all the way to a real, application-layer-validated result, not a stub. See
+  §11's expanded scope.
 - **Be honest about scope:** this is a materially bigger integration surface than the retired
   BBDev-PMD plan (one op vs. a full PHY interface). Budget for it accordingly.
 
@@ -264,9 +287,22 @@ does not start until Phase 1 has a working baseline to measure against.
 ## 11. Scope (locked)
 
 **What changes:** the *one* leg identified in §5 — the GPU→CPU decoded-bits handoff — moves from
-Phase 1's pinned-memory copy to a **CXL-backed shared region**. Nothing else changes: NIC→GPU
-ingest (§4), the GPU-resident full PHY (§2), the split choice (§3), and the PHY↔L2 seam (§7) are
-**identical in Phase 2** to Phase 1.
+Phase 1's pinned-memory copy to a **CXL-backed shared region**. NIC→GPU ingest (§4), the
+GPU-resident full PHY (§2), and the split choice (§3) are unchanged from Phase 1.
+
+**Updated 2026-07-30 — the PHY↔L2 seam (§7) is no longer identical to Phase 1's stub.** Once the
+CXL-backed region exists as the GPU→CPU delivery path, it becomes the mechanism carrying real
+decoded PHY data into the **real** L2/L3 stack already proven (CPU-only) in Phase 1's SIM baseline
+— not the Phase-1 structural-validation stub. This is the same gap §8's honesty ledger already
+names: Phase 1 proves the GPU decoder is bit-exact correct against a known-answer reference, never
+by delivering that data to a real downstream stack. Phase 2 closes it: CXL is both the answer to
+"how does GPU-decoded data reach the CPU" and the delivery path for "reach the CPU *and* get
+processed by the real L2/L3 software, ending in a real application-layer-validated message" — one
+mechanism, not two separate integration efforts. Concretely, this means Phase 2 needs either the
+real L2/MAC software (already running, CPU-only, today) extended to read PHY input from the CXL
+region instead of only its own internal PHY implementation, or a precise compatibility layer that
+mimics that internal handoff exactly — real engineering, no open research question, unlike the CXL
+fabric question above.
 
 ```
 Phase 1:  GPU VRAM ──pinned-memory DMA copy──► CPU RAM
@@ -291,8 +327,10 @@ carries forward unchanged and applies directly once Phase 2 starts:
   (e.g. the earlier `e2e_slot_t`-style atomic status field) for the CPU to know when the GPU's write
   is visible. This is real added complexity Phase 2 accepts in exchange for testing CXL itself.
 
-**What Phase 2 is explicitly NOT (yet):** not multi-GPU pooling, not a NIC-ingest change, not a
-PHY↔L2 seam change. Those remain future/deferred beyond Phase 2 unless separately scoped.
+**What Phase 2 is explicitly NOT:** not multi-GPU pooling, not a NIC-ingest change, not a PHY
+change. The PHY↔L2 seam **does** change in Phase 2 (above) — that is the update from this doc's
+earlier draft, which had scoped it out; everything else stays future/deferred unless separately
+scoped.
 
 **Hardware for Phase 2:** needs a real CXL Type-3 + GPU pairing (or QEMU-CXL for functional-only
 proof first, per the three-tier method) — not yet located; this is Phase 2's own hardware question,
